@@ -1,0 +1,47 @@
+# EAS uses this INSTEAD of .gitignore when it is present, so it has to repeat
+# everything .gitignore covers — plus `.env`, which .gitignore does not catch.
+#
+# `.env` holds the LAN IP used for Expo Go on this machine. Uploading it would
+# bake `http://172.16.64.97:3000` into the APK and override the hosted URL that
+# eas.json sets per profile. The build must not see it.
+.env
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
