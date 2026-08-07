@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Alert, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import { confirmDestructive } from "@/lib/alert";
 import { spacing } from "@/lib/theme";
 import { makeStyles } from "@/lib/theme-context";
 import { formatDate } from "@/lib/format";
@@ -9,7 +10,6 @@ import { fieldErrorsFrom, mergeServerErrors, type FieldErrors } from "@/lib/form
 import {
   toApiError,
   useChangePasswordMutation,
-  useSignOutMutation,
   useUpdateProfileMutation,
 } from "@/store/api";
 import { Body, DetailBar, Screen } from "@/components/ui/Screen";
@@ -29,7 +29,6 @@ export default function Profile() {
   const [updateProfile, { isLoading: savingProfile }] = useUpdateProfileMutation();
   const [changePassword, { isLoading: savingPassword }] =
     useChangePasswordMutation();
-  const [signOutRequest] = useSignOutMutation();
 
   const [section, setSection] = useState<Section>("details");
 
@@ -115,28 +114,14 @@ export default function Profile() {
   }
 
   function confirmSignOut() {
-    Alert.alert("Sign out", "You will need to sign in again on this device.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Sign out",
-        style: "destructive",
-        onPress: () => {
-          // Clearing the local token is what matters; the cookie call is
-          // best-effort and must not block sign-out if the server is down.
-          // It still goes first so the request carries the token it is
-          // revoking, but the base query sets no timeout — an unreachable
-          // server would otherwise leave the tap doing nothing for a minute.
-          const revoked = signOutRequest()
-            .unwrap()
-            .catch(() => undefined);
-          const bounded = Promise.race([
-            revoked,
-            new Promise((resolve) => setTimeout(resolve, 2_000)),
-          ]);
-          void bounded.finally(() => void signOut());
-        },
-      },
-    ]);
+    confirmDestructive(
+      "Sign out",
+      "You will need to sign in again on this device.",
+      // `signOut` owns the whole sequence — bounded server revocation first,
+      // then the local teardown that cannot fail. Nothing to add here.
+      () => void signOut(),
+      "Sign out",
+    );
   }
 
   if (!user) {

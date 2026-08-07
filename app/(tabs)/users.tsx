@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Alert, Pressable, Text, TextInput, View } from "react-native";
+import { Pressable, Text, TextInput, View } from "react-native";
+import { confirmDestructive, notify } from "@/lib/alert";
 import { Ionicons } from "@expo/vector-icons";
 import { HIT_SLOP, MIN_TAP, radius, spacing, type Palette } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
@@ -117,28 +118,19 @@ export default function AdminUsers() {
     setSelected(null);
     void setStatus({ userId: user.id, status: next })
       .unwrap()
-      .catch((err) => Alert.alert("Could not update", toApiError(err).message));
+      .catch((err) => notify("Could not update", toApiError(err).message));
   }
 
   function confirmDelete(user: AdminUserRow) {
     setSelected(null);
-    Alert.alert(
+    confirmDestructive(
       "Delete user",
       `Permanently delete ${user.fullName}? Their groups and tasks go with them.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            void deleteUser(user.id)
-              .unwrap()
-              .catch((err) =>
-                Alert.alert("Could not delete", toApiError(err).message),
-              );
-          },
-        },
-      ],
+      () => {
+        void deleteUser(user.id)
+          .unwrap()
+          .catch((err) => notify("Could not delete", toApiError(err).message));
+      },
     );
   }
 

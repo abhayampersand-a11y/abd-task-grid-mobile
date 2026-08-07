@@ -21,6 +21,12 @@ Notes specific to this project:
 - Colour-dependent tables (`statusMeta`, `priorityMeta`, `groupColor`, `tintFor`)
   come from `useTheme()`, not from `lib/format.ts` directly — `format.ts` only
   exports the factories that build them.
+- **Never import `Alert` from `react-native`.** On the web build
+  `react-native-web` ships it as `class Alert { static alert() {} }` — an empty
+  body, so the dialog never appears *and* a confirm's `onPress` never fires,
+  silently killing the action behind it. Use `notify` / `confirmDestructive`
+  from `lib/alert.ts`, which fall back to the browser's own dialogs. A bare
+  `Alert.alert` typechecks everywhere, which is what makes this so quiet.
 - **Social sign-in is brokered by the API, not by this app.** `lib/oauth.ts`
   only opens `/api/auth/oauth/{provider}/start` in a `WebBrowser` auth session
   and reads the session token off the `taskflow://oauth-callback` deep link —

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ActivityIndicator, Alert, Platform, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, Text, View } from "react-native";
+import { notify } from "@/lib/alert";
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
 import { radius, spacing } from "@/lib/theme";
@@ -59,7 +60,7 @@ export function AvatarPicker({
           : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!permission.granted) {
-        Alert.alert(
+        notify(
           source === "camera" ? "Camera access needed" : "Photo access needed",
           "Grant access in Settings to change your profile picture.",
         );

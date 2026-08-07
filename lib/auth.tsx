@@ -62,32 +62,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [dispatch],
   );
 
-  const signOut = useCallback(async () => {
-    // Before the token goes, not after: unregistering needs the session it is
-    // unregistering. Skipping it would leave this handset receiving the
-    // previous account's task alerts until the next person signs in on it.
-    const pushToken = getCachedPushToken();
-    if (pushToken) {
-      try {
-        await dispatch(
-          api.endpoints.unregisterPushToken.initiate(pushToken),
-        ).unwrap();
-      } catch {
-        // Offline, or the row is already gone. Signing out still has to work.
-      }
-      setCachedPushToken(null);
+  /**
+   * Ends the session on this device. Touches no network and never rejects —
+   * being signed out is a local fact, and nothing about it may depend on the
+   * server being reachable.
+   */
+  const clearSession = useCallback(async () => {
+    setCachedPushToken(null);
+    try {
+      await clearToken();
+    } catch {
+      // A keychain that will not delete must not strand the user in a
+      // half-signed state: the in-memory mirror is already null, so no further
+      // request carries the token either way.
     }
-
-    await clearToken();
     setHasToken(false);
     dispatch(api.util.resetApiState());
   }, [dispatch]);
 
+  const signOut = useCallback(async () => {
+    // Both revocations need the session they are revoking, so they go before
+    // the token does. Unregistering the push token matters: skipping it would
+    // leave this handset receiving the previous account's task alerts until the
+    // next person signs in on it.
+    //
+    // Bounded, though. `fetchBaseQuery` sets no timeout, so a server the phone
+    // cannot reach would otherwise leave the tap doing nothing for a minute.
+    // The server call is a courtesy; `clearSession` is the sign-out.
+    const pushToken = getCachedPushToken();
+    const revoked = Promise.all([
+      dispatch(api.endpoints.signOut.initiate())
+        .unwrap()
+        .catch(() => undefined),
+      pushToken
+        ? dispatch(api.endpoints.unregisterPushToken.initiate(pushToken))
+            .unwrap()
+            .catch(() => undefined)
+        : undefined,
+    ]);
+
+    await Promise.race([
+      revoked,
+      new Promise((resolve) => setTimeout(resolve, 2_000)),
+    ]);
+
+    await clearSession();
+  }, [dispatch, clearSession]);
+
   // A token that no longer verifies (expired, or AUTH_SECRET rotated) should
   // drop the user to sign-in rather than leave the app in a half-signed state.
+  // Nothing to revoke here — the server has already rejected the session — so
+  // this clears directly rather than waiting on a call that can only 401.
   useEffect(() => {
-    if (hasToken && isError) void signOut();
-  }, [hasToken, isError, signOut]);
+    if (hasToken && isError) void clearSession();
+  }, [hasToken, isError, clearSession]);
 
   const value = useMemo<AuthValue>(() => {
     // No token means signed out, whatever the query happens to still hold.

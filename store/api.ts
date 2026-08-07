@@ -178,9 +178,11 @@ export const api = createApi({
       query: (body) => ({ url: "/auth/sign-in", method: "POST", body }),
       invalidatesTags: ["Session"],
     }),
+    // No `invalidatesTags`: `auth.tsx` resets the whole cache immediately after
+    // this resolves. Invalidating `Session` would only refetch `/auth/me` with
+    // a token that is about to go, spending a round trip to earn a 401.
     signOut: build.mutation<{ success: boolean }, void>({
       query: () => ({ url: "/auth/sign-out", method: "POST" }),
-      invalidatesTags: ["Session"],
     }),
     /**
      * Which social providers the server has credentials for. Asking beats

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import { confirmDestructive, notify } from "@/lib/alert";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { HIT_SLOP, radius, spacing } from "@/lib/theme";
@@ -82,69 +83,56 @@ export default function GroupDetail() {
       }).unwrap();
       setInvited([]);
       setMemberSheet(false);
-      Alert.alert(
+      notify(
         `${sent} invitation${sent === 1 ? "" : "s"} sent`,
         "They join the group once they accept the request.",
       );
     } catch (error) {
-      Alert.alert("Could not send invitations", toApiError(error).message);
+      notify("Could not send invitations", toApiError(error).message);
     }
   }
 
   function confirmWithdraw(invitationId: string, name: string) {
-    Alert.alert("Withdraw invitation", `Cancel the request sent to ${name}?`, [
-      { text: "Keep", style: "cancel" },
-      {
-        text: "Withdraw",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await cancelInvitation({ invitationId, groupId }).unwrap();
-          } catch (error) {
-            Alert.alert("Could not withdraw", toApiError(error).message);
-          }
-        },
+    confirmDestructive(
+      "Withdraw invitation",
+      `Cancel the request sent to ${name}?`,
+      () => {
+        void cancelInvitation({ invitationId, groupId })
+          .unwrap()
+          .catch((error) =>
+            notify("Could not withdraw", toApiError(error).message),
+          );
       },
-    ]);
+      "Withdraw",
+    );
   }
 
   function confirmRemoveMember(userId: string, name: string) {
-    Alert.alert("Remove member", `Remove ${name} from ${detail?.name}?`, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: () => {
-          void removeMember({ groupId, userId })
-            .unwrap()
-            .catch((error) =>
-              Alert.alert("Could not remove", toApiError(error).message),
-            );
-        },
+    confirmDestructive(
+      "Remove member",
+      `Remove ${name} from ${detail?.name}?`,
+      () => {
+        void removeMember({ groupId, userId })
+          .unwrap()
+          .catch((error) =>
+            notify("Could not remove", toApiError(error).message),
+          );
       },
-    ]);
+      "Remove",
+    );
   }
 
   function confirmDeleteGroup() {
     setActionSheet(false);
-    Alert.alert(
+    confirmDestructive(
       "Delete group",
       `This permanently deletes ${detail?.name} and every task in it.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            void deleteGroup(groupId)
-              .unwrap()
-              .then(() => router.back())
-              .catch((error) =>
-                Alert.alert("Could not delete", toApiError(error).message),
-              );
-          },
-        },
-      ],
+      () => {
+        void deleteGroup(groupId)
+          .unwrap()
+          .then(() => router.back())
+          .catch((error) => notify("Could not delete", toApiError(error).message));
+      },
     );
   }
 

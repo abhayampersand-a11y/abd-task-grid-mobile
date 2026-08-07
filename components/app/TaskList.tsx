@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import { confirmDestructive, notify } from "@/lib/alert";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { HIT_SLOP, radius, spacing } from "@/lib/theme";
@@ -133,23 +134,14 @@ export function TaskList({
 
   function confirmDelete(task: TaskSummary) {
     setSelected(null);
-    Alert.alert(
+    confirmDestructive(
       "Delete this task?",
       `"${task.title}" and all of its comments, attachments and history will be permanently removed.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => {
-            void deleteTask(task.id)
-              .unwrap()
-              .catch((error) =>
-                Alert.alert("Could not delete", toApiError(error).message),
-              );
-          },
-        },
-      ],
+      () => {
+        void deleteTask(task.id)
+          .unwrap()
+          .catch((error) => notify("Could not delete", toApiError(error).message));
+      },
     );
   }
 

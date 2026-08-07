@@ -1,13 +1,7 @@
 import { useState } from "react";
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { confirmDestructive, notify } from "@/lib/alert";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { HIT_SLOP, MIN_TAP, radius, spacing } from "@/lib/theme";
@@ -76,7 +70,7 @@ export default function TaskDetail() {
     try {
       await updateTask({ taskId: task.id, status }).unwrap();
     } catch (err) {
-      Alert.alert("Could not update", toApiError(err).message);
+      notify("Could not update", toApiError(err).message);
     }
   }
 
@@ -87,25 +81,18 @@ export default function TaskDetail() {
       await addComment({ taskId: task.id, body }).unwrap();
       setComment("");
     } catch (err) {
-      Alert.alert("Could not post", toApiError(err).message);
+      notify("Could not post", toApiError(err).message);
     }
   }
 
   function confirmDelete() {
     setActionSheet(false);
-    Alert.alert("Delete task", "This cannot be undone.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => {
-          void deleteTask(taskId)
-            .unwrap()
-            .then(() => router.back())
-            .catch((err) => Alert.alert("Could not delete", toApiError(err).message));
-        },
-      },
-    ]);
+    confirmDestructive("Delete task", "This cannot be undone.", () => {
+      void deleteTask(taskId)
+        .unwrap()
+        .then(() => router.back())
+        .catch((err) => notify("Could not delete", toApiError(err).message));
+    });
   }
 
   if (isLoading) {

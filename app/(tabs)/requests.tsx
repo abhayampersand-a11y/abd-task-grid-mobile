@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Alert, Text, View } from "react-native";
+import { Text, View } from "react-native";
+import { notify } from "@/lib/alert";
 import { useRouter } from "expo-router";
 import { radius, spacing } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
@@ -40,7 +41,7 @@ export default function Requests() {
       await respond({ invitationId: invitation.id, action }).unwrap();
       if (action === "ACCEPT") router.push(`/group/${invitation.group.id}`);
     } catch (requestError) {
-      Alert.alert("Could not answer", toApiError(requestError).message);
+      notify("Could not answer", toApiError(requestError).message);
     } finally {
       setBusy(null);
     }

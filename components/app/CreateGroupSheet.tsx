@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { radius, spacing } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
 import { GROUP_COLOR_KEYS } from "@/lib/format";
@@ -159,18 +159,6 @@ export function CreateGroupSheet({
       </Text>
     </Sheet>
   );
-}
-
-/** Shared confirm helper so destructive actions read the same everywhere. */
-export function confirmDestructive(
-  title: string,
-  message: string,
-  onConfirm: () => void,
-) {
-  Alert.alert(title, message, [
-    { text: "Cancel", style: "cancel" },
-    { text: "Delete", style: "destructive", onPress: onConfirm },
-  ]);
 }
 
 const useStyles = makeStyles(({ colors }) => ({
