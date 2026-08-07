@@ -10,6 +10,7 @@ import {
 import { api, useMeQuery } from "@/store/api";
 import { useAppDispatch } from "@/store/hooks";
 import { clearToken, loadToken, saveToken } from "./token";
+import { getCachedPushToken, setCachedPushToken } from "./push-token";
 import type { CurrentUser } from "./types";
 
 interface AuthValue {
@@ -41,7 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Without a token there is nobody to fetch, and the request would only 401.
-  const { data, isLoading, isError } = useMeQuery(undefined, {
+  //
+  // `currentData`, not `data`: RTK Query deliberately keeps handing back the
+  // last result once a query starts skipping, so after sign-out `data` would
+  // still be the signed-out user and the gate would never redirect.
+  // `currentData` is the live cache entry, which `resetApiState` empties.
+  const { currentData, isLoading, isError } = useMeQuery(undefined, {
     skip: !restored || !hasToken,
   });
 
@@ -57,6 +63,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    // Before the token goes, not after: unregistering needs the session it is
+    // unregistering. Skipping it would leave this handset receiving the
+    // previous account's task alerts until the next person signs in on it.
+    const pushToken = getCachedPushToken();
+    if (pushToken) {
+      try {
+        await dispatch(
+          api.endpoints.unregisterPushToken.initiate(pushToken),
+        ).unwrap();
+      } catch {
+        // Offline, or the row is already gone. Signing out still has to work.
+      }
+      setCachedPushToken(null);
+    }
+
     await clearToken();
     setHasToken(false);
     dispatch(api.util.resetApiState());
@@ -69,7 +90,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [hasToken, isError, signOut]);
 
   const value = useMemo<AuthValue>(() => {
-    const user = data?.user ?? null;
+    // No token means signed out, whatever the query happens to still hold.
+    const user = hasToken ? (currentData?.user ?? null) : null;
     return {
       user,
       ready: restored && !(hasToken && isLoading),
@@ -77,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithToken,
       signOut,
     };
-  }, [data, restored, hasToken, isLoading, signInWithToken, signOut]);
+  }, [currentData, restored, hasToken, isLoading, signInWithToken, signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -156,6 +156,24 @@ export const adminUserActionSchema = z.object({
   status: z.enum(["ACTIVE", "DISABLED"]),
 });
 
+/**
+ * A device registering itself for push. The shape is validated rather than
+ * trusted because the token is echoed straight back to Expo — anything that is
+ * not an `ExponentPushToken[…]` could only ever earn an error ticket.
+ */
+export const pushTokenSchema = z.object({
+  token: z
+    .string()
+    .trim()
+    .max(255)
+    .regex(
+      /^Expo(nent)?PushToken\[[^\]]+\]$/,
+      "That is not an Expo push token.",
+    ),
+  platform: z.enum(["ios", "android"]),
+  deviceName: z.string().trim().max(120).optional().nullable(),
+});
+
 export type InvitationAction = z.infer<
   typeof invitationResponseSchema
 >["action"];
@@ -167,3 +185,4 @@ export type CreateTaskInput = z.input<typeof createTaskSchema>;
 export type UpdateTaskInput = z.input<typeof updateTaskSchema>;
 export type UpdateProfileInput = z.input<typeof updateProfileSchema>;
 export type ChangePasswordInput = z.input<typeof changePasswordSchema>;
+export type PushTokenInput = z.input<typeof pushTokenSchema>;

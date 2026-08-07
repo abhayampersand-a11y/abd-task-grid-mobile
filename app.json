@@ -29,7 +29,21 @@
       "expo-router",
       "expo-secure-store",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "color": "#6544f5",
+          "defaultChannel": "default"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow TaskFlow Pro to access your photos so you can set a profile picture.",
+          "cameraPermission": "Allow TaskFlow Pro to use the camera to take a profile picture."
+        }
+      ]
     ],
     "extra": {
       "apiBaseUrl": "https://abd-task-grid.vercel.app",

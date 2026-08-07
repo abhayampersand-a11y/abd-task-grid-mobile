@@ -7,6 +7,7 @@ import { Stack, useRouter, useSegments } from "expo-router";
 import { store } from "@/store";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { BlurTargetProvider } from "@/lib/blur-target";
+import { PushSync } from "@/lib/push";
 import { makeStyles, ThemeProvider, useTheme } from "@/lib/theme-context";
 
 // `oauth-callback` counts as an auth screen so the gate leaves it alone long
@@ -59,6 +60,9 @@ function ThemedApp() {
     <>
       {/* Light content on a dark bar, and vice versa. */}
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
+      {/* Outside the gate: a notification tapped from a cold start has to be
+          handled whether or not the session has finished resolving. */}
+      <PushSync />
       <AuthGate>
         {/* Everything routed sits inside the blur target, because the floating
             tab bar blurs whichever screen happens to be under it. */}

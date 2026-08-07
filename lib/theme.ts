@@ -208,7 +208,26 @@ export const TAB_BAR = {
   height: 64,
   /** Gap between the pill and the safe-area edge, on all three sides. */
   inset: spacing.md,
+  /** The brand disc of the docked create button. */
+  dock: 58,
+  /**
+   * The canvas-coloured collar around that disc. It is what makes the dock read
+   * as punched out of the glass rather than laid on top of it, so it has to be
+   * opaque and it has to be the canvas colour exactly.
+   */
+  dockRing: 5,
+  /** How far the dock's centre rides above the bar's. */
+  dockRaise: 12,
 } as const;
+
+/** Outer diameter of the dock, collar included. */
+export const DOCK_SIZE = TAB_BAR.dock + TAB_BAR.dockRing * 2;
+
+/**
+ * How far the dock pokes out above the top edge of the pill — the extra room
+ * every screen has to scroll clear of, on top of the bar's own height.
+ */
+export const DOCK_OVERHANG = DOCK_SIZE / 2 + TAB_BAR.dockRaise - TAB_BAR.height / 2;
 
 export interface Shadows {
   soft: object;

@@ -13,7 +13,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { HIT_SLOP, MIN_TAP, radius, spacing, TAB_BAR } from "@/lib/theme";
+import {
+  DOCK_OVERHANG,
+  HIT_SLOP,
+  MIN_TAP,
+  radius,
+  spacing,
+  TAB_BAR,
+} from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
 import {
   KeyboardAvoider,
@@ -22,11 +29,13 @@ import {
 
 /**
  * Clears the floating tab bar (MOBILE.md §6): its height, the gap it floats in,
- * and a gutter so the last row stops short of the glass rather than sliding
- * under it half-read. `Body` adds the bottom safe-area inset on top, which is
- * device-specific and so cannot live in a constant.
+ * the create dock riding above its top edge, and a gutter so the last row stops
+ * short of the glass rather than sliding under it half-read. `Body` adds the
+ * bottom safe-area inset on top, which is device-specific and so cannot live in
+ * a constant.
  */
-export const TAB_BAR_CLEARANCE = TAB_BAR.height + TAB_BAR.inset + spacing.xl;
+export const TAB_BAR_CLEARANCE =
+  TAB_BAR.height + TAB_BAR.inset + DOCK_OVERHANG + spacing.xl;
 
 /**
  * How close to the bottom `onEndReached` fires, in points — roughly two rows,

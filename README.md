@@ -152,6 +152,43 @@ that do not apply without unregistering the route.
 Routing is convenience only — every API route re-checks the session and the
 user's role server-side, exactly as it does for the web app.
 
+## Push notifications
+
+A task assigned, a comment posted or a group invitation sent reaches the phone
+whether or not the app is running.
+
+Nothing new decides *when* to notify. The API already funnels every alert
+through `notify()` in `../my-app/lib/events.ts`; that function now also calls
+`../my-app/lib/push.ts`, which addresses Expo's push service. So the tray copy
+and the in-app Alerts list can never disagree — one call produces both.
+
+Delivery is brokered by Expo, exactly as social sign-in is brokered by the API:
+there are no FCM or APNs credentials in this repo. The Expo project that builds
+the app owns them, and `ExponentPushToken[…]` is the only address the server
+handles.
+
+- `lib/push.tsx` — `<PushSync />`, mounted once in `app/_layout.tsx`. Requests
+  permission, registers the device on sign-in, refreshes the cache when a
+  notification lands in the foreground, and opens the task or group a tapped
+  notification is about (including when the tap is what launched the app).
+- `lib/push-token.ts` — the token in memory, kept apart so `lib/auth.tsx` can
+  unregister the device on sign-out without importing the notification layer.
+- `lib/links.ts` — one translation from the API's web-shaped links
+  (`/tasks/:id`) to native routes (`/task/:id`), shared by the Alerts list and
+  the tap handler.
+
+**Requires a development or release build.** Expo Go on Android dropped remote
+push in SDK 53, and the iOS simulator has no push service at all — in both the
+token request fails quietly and the app falls back to in-app alerts only:
+
+```bash
+npx eas build --profile development --platform android
+```
+
+The server needs the `PushToken` table, so run `npm run db:deploy` in
+`../my-app` after pulling this. `EXPO_ACCESS_TOKEN` is optional there — set it
+only once push security is enabled on the Expo project.
+
 ## Conventions
 
 Interaction rules follow `../my-app/MOBILE.md`: 44pt minimum hit areas, modals
@@ -168,6 +205,10 @@ npx expo export --platform android # proves the bundle builds
 
 ## Not built
 
-Push notifications, file upload from the device, offline support and gesture
-navigation. Attachments are listed and readable but cannot be added from the
-phone — the create-task form sends an empty `attachments` array.
+File upload from the device, offline support and gesture navigation. Attachments
+are listed and readable but cannot be added from the phone — the create-task
+form sends an empty `attachments` array.
+
+Push receipts are not polled. Expo's tickets are checked synchronously for
+`DeviceNotRegistered` so dead tokens get deleted, but the 15-minute receipt
+lookup that reports per-device delivery failures is not wired up.

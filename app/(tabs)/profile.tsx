@@ -12,13 +12,14 @@ import {
   useSignOutMutation,
   useUpdateProfileMutation,
 } from "@/store/api";
-import { Body, BrandBar, Screen } from "@/components/ui/Screen";
-import { Avatar, Card, ErrorNote } from "@/components/ui/primitives";
+import { Body, DetailBar, Screen } from "@/components/ui/Screen";
+import { Card, ErrorNote } from "@/components/ui/primitives";
 import { ProfileSkeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { AppearanceSection } from "@/components/app/AppearanceSection";
+import { AvatarPicker } from "@/components/app/AvatarPicker";
 
 type Section = "details" | "security" | "appearance";
 
@@ -122,10 +123,17 @@ export default function Profile() {
         onPress: () => {
           // Clearing the local token is what matters; the cookie call is
           // best-effort and must not block sign-out if the server is down.
-          void signOutRequest()
+          // It still goes first so the request carries the token it is
+          // revoking, but the base query sets no timeout — an unreachable
+          // server would otherwise leave the tap doing nothing for a minute.
+          const revoked = signOutRequest()
             .unwrap()
-            .catch(() => undefined)
-            .finally(() => void signOut());
+            .catch(() => undefined);
+          const bounded = Promise.race([
+            revoked,
+            new Promise((resolve) => setTimeout(resolve, 2_000)),
+          ]);
+          void bounded.finally(() => void signOut());
         },
       },
     ]);
@@ -134,7 +142,7 @@ export default function Profile() {
   if (!user) {
     return (
       <Screen>
-        <BrandBar title="Profile" />
+        <DetailBar title="Profile" />
         <Body>
           <ProfileSkeleton />
         </Body>
@@ -144,14 +152,16 @@ export default function Profile() {
 
   return (
     <Screen>
-      <BrandBar title="Profile" />
+      {/* Reached from a header rather than from the bar, so it gets a way back
+          — the tab bar no longer has a lit tab to say where you are. */}
+      <DetailBar title="Profile" />
 
       {/* Identity and the section switcher stay put; the form scrolls. */}
       <Body
         sticky={
           <>
             <Card style={styles.identity}>
-              <Avatar user={user} size={64} />
+              <AvatarPicker user={user} size={64} />
               <View style={styles.identityText}>
                 <Text style={styles.name}>{user.fullName}</Text>
                 <Text style={styles.email}>{user.email}</Text>

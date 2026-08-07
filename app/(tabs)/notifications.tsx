@@ -1,9 +1,12 @@
+import { useCallback } from "react";
 import { Pressable, Text, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { HIT_SLOP, radius, spacing } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
 import { relativeTime } from "@/lib/format";
+import { toAppRoute } from "@/lib/links";
+import { clearPushBadge } from "@/lib/push";
 import type { NotificationDto, NotificationType } from "@/lib/types";
 import {
   toApiError,
@@ -15,6 +18,7 @@ import {
 import { Body, BrandBar, Screen } from "@/components/ui/Screen";
 import { EmptyState, ErrorNote } from "@/components/ui/primitives";
 import { NotificationListSkeleton } from "@/components/ui/Skeleton";
+import { ProfileButton } from "@/components/app/ProfileButton";
 
 const ICONS: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
   TASK_ASSIGNED: "clipboard-outline",
@@ -37,27 +41,15 @@ export default function Notifications() {
   const list = data?.notifications ?? [];
   const unread = data?.unreadCount ?? 0;
 
+  // Reaching this screen is what "seen" means, so the icon badge the push
+  // service painted has served its purpose.
+  useFocusEffect(useCallback(() => clearPushBadge(), []));
+
   function open(notification: NotificationDto) {
     if (!notification.read) void markRead(notification.id);
 
-    // Links come from the web app as `/tasks/:id` and `/groups/:id`; the native
-    // routes are singular, so translate rather than duplicating them here.
-    const link = notification.link;
-    if (!link) return;
-
-    if (link === "/requests") {
-      router.push("/requests");
-      return;
-    }
-
-    const task = link.match(/^\/tasks\/([^/]+)/);
-    if (task) {
-      router.push(`/task/${task[1]}`);
-      return;
-    }
-
-    const group = link.match(/^\/groups\/([^/]+)/);
-    if (group) router.push(`/group/${group[1]}`);
+    const route = toAppRoute(notification.link);
+    if (route) router.push(route);
   }
 
   return (
@@ -66,16 +58,19 @@ export default function Notifications() {
         title="Alerts"
         subtitle={unread > 0 ? `${unread} unread` : "All caught up"}
         right={
-          unread > 0 ? (
-            <Pressable
-              onPress={() => void markAllRead()}
-              hitSlop={HIT_SLOP}
-              accessibilityRole="button"
-              style={styles.markAll}
-            >
-              <Text style={styles.markAllText}>Mark all read</Text>
-            </Pressable>
-          ) : null
+          <>
+            {unread > 0 ? (
+              <Pressable
+                onPress={() => void markAllRead()}
+                hitSlop={HIT_SLOP}
+                accessibilityRole="button"
+                style={styles.markAll}
+              >
+                <Text style={styles.markAllText}>Mark all read</Text>
+              </Pressable>
+            ) : null}
+            <ProfileButton />
+          </>
         }
       />
 

@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Text, View } from "react-native";
 import { radius, spacing } from "@/lib/theme";
 import { makeStyles } from "@/lib/theme-context";
+import { useCreateAction } from "@/lib/create-action";
 import { toApiError, useGroupsQuery } from "@/store/api";
-import { Body, BrandBar, Fab, Screen } from "@/components/ui/Screen";
+import { Body, BrandBar, Screen } from "@/components/ui/Screen";
 import {
   Card,
   EmptyState,
@@ -14,10 +15,19 @@ import { GroupListSkeleton, Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { GroupCard } from "@/components/app/GroupCard";
 import { CreateGroupSheet } from "@/components/app/CreateGroupSheet";
+import { ProfileButton } from "@/components/app/ProfileButton";
 
 export default function Groups() {
   const [sheet, setSheet] = useState(false);
   const styles = useStyles();
+
+  // On this tab the bar's create button makes a group, not a task.
+  useCreateAction({
+    label: "Create a group",
+    icon: "add",
+    onPress: () => setSheet(true),
+  });
+
   const { data, isLoading, isFetching, isError, error, refetch } =
     useGroupsQuery();
 
@@ -37,6 +47,7 @@ export default function Groups() {
       <BrandBar
         title="Groups"
         subtitle={`${groups.length} group${groups.length === 1 ? "" : "s"}`}
+        right={<ProfileButton />}
       />
 
       {/* The roll-up stays put; only the list of groups scrolls under it. */}
@@ -94,8 +105,6 @@ export default function Groups() {
           </View>
         )}
       </Body>
-
-      <Fab label="Create a group" onPress={() => setSheet(true)} />
 
       <CreateGroupSheet visible={sheet} onClose={() => setSheet(false)} />
     </Screen>

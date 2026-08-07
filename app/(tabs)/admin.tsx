@@ -12,6 +12,7 @@ import {
   StatTile,
 } from "@/components/ui/primitives";
 import { AdminOverviewSkeleton } from "@/components/ui/Skeleton";
+import { ProfileButton } from "@/components/app/ProfileButton";
 
 export default function AdminOverview() {
   const { user } = useAuth();
@@ -25,6 +26,7 @@ export default function AdminOverview() {
       <BrandBar
         subtitle="Administration"
         title={user?.fullName.split(" ")[0] ?? "Admin"}
+        right={<ProfileButton />}
       />
 
       <Body refreshing={isFetching && !isLoading} onRefresh={refetch}>

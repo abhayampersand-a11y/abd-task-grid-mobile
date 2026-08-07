@@ -1,13 +1,19 @@
+import { useState } from "react";
+import { Pressable, View } from "react-native";
 import { Tabs } from "expo-router";
-import { View } from "react-native";
 import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { radius, spacing, TAB_BAR } from "@/lib/theme";
+import { DOCK_SIZE, radius, spacing, TAB_BAR } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
 import { useBlurTarget } from "@/lib/blur-target";
 import { useAuth } from "@/lib/auth";
+import {
+  CreateActionProvider,
+  usePublishedCreateAction,
+} from "@/lib/create-action";
 import { useInvitationsQuery, useNotificationsQuery } from "@/store/api";
+import { CreateTaskSheet } from "@/components/app/CreateTaskSheet";
 
 /** Diameter of the selected disc. */
 const DISC = 48;
@@ -77,14 +83,77 @@ function TabIcon({
 }
 
 /**
+ * The create button, docked in the middle slot of the bar.
+ *
+ * It is drawn *over* the bar rather than inside it: Android clips a child that
+ * paints outside its parent's bounds, so a button that rides above the pill's
+ * top edge cannot be a tab item. The `create` route holds the slot open
+ * underneath it and this is what the user actually presses.
+ *
+ * What it creates comes from whichever screen is focused (`lib/create-action`).
+ * Screens that create nothing — alerts, requests — fall through to a new task,
+ * so the button is never a dead end.
+ */
+function CreateDock() {
+  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const action = usePublishedCreateAction();
+  const [fallback, setFallback] = useState(false);
+
+  return (
+    <>
+      {/* Full-width so the button can centre itself on the bar; `box-none` so
+          the rest of that width still passes taps through to the screen. */}
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.dockLayer,
+          {
+            bottom:
+              insets.bottom +
+              TAB_BAR.inset +
+              TAB_BAR.height / 2 +
+              TAB_BAR.dockRaise -
+              DOCK_SIZE / 2,
+          },
+        ]}
+      >
+        <Pressable
+          onPress={() => (action ? action.run() : setFallback(true))}
+          accessibilityRole="button"
+          accessibilityLabel={action?.label ?? "Create a task"}
+          style={({ pressed }) => [styles.dock, pressed && styles.dockPressed]}
+        >
+          <View style={styles.dockDisc}>
+            <Ionicons
+              name={action?.icon ?? "add"}
+              size={28}
+              color={colors.onBrand}
+            />
+          </View>
+        </Pressable>
+      </View>
+
+      <CreateTaskSheet visible={fallback} onClose={() => setFallback(false)} />
+    </>
+  );
+}
+
+/**
  * The bottom tab bar replaces the web app's off-canvas sidebar entirely
  * (MOBILE.md §1). Admins and members get different tabs — `href: null` removes
  * a screen from the bar without unregistering the route.
  *
  * It floats: a pill inset from all three edges with the content scrolling under
  * it, which is why `TAB_BAR_CLEARANCE` pads every screen body past its height.
+ *
+ * The account is not in it. It is one tap from every header instead
+ * (`ProfileButton`), which buys the middle slot for the create button — the
+ * thing you reach for many times a day, at the one place on a phone your thumb
+ * rests anyway.
  */
-export default function TabsLayout() {
+function TabsChrome() {
   const { isAdmin } = useAuth();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
@@ -104,106 +173,136 @@ export default function TabsLayout() {
   const pendingRequests = requests?.pendingCount ?? 0;
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.ink,
-        tabBarInactiveTintColor: colors.inkMuted,
-        // The label is dropped: with the selected disc doing the work, seven
-        // 11pt captions are noise, and the bar can be a pill without them.
-        tabBarShowLabel: false,
-        tabBarStyle: [styles.bar, { bottom: insets.bottom + TAB_BAR.inset }],
-        tabBarItemStyle: styles.item,
-        tabBarIconStyle: styles.iconSlot,
-        tabBarBadgeStyle: styles.badge,
-        tabBarBackground: () => <TabBarGlass />,
-      }}
-    >
-      <Tabs.Screen
-        name="dashboard"
-        options={{
-          title: "Home",
-          href: isAdmin ? null : "/dashboard",
-          tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} />,
+    <View style={styles.root}>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: colors.ink,
+          tabBarInactiveTintColor: colors.inkMuted,
+          // The label is dropped: with the selected disc doing the work, seven
+          // 11pt captions are noise, and the bar can be a pill without them.
+          tabBarShowLabel: false,
+          tabBarStyle: [styles.bar, { bottom: insets.bottom + TAB_BAR.inset }],
+          tabBarItemStyle: styles.item,
+          tabBarIconStyle: styles.iconSlot,
+          tabBarBadgeStyle: styles.badge,
+          tabBarBackground: () => <TabBarGlass />,
         }}
-      />
+      >
+        <Tabs.Screen
+          name="dashboard"
+          options={{
+            title: "Home",
+            href: isAdmin ? null : "/dashboard",
+            tabBarIcon: ({ focused }) => (
+              <TabIcon name="home" focused={focused} />
+            ),
+          }}
+        />
 
-      <Tabs.Screen
-        name="admin"
-        options={{
-          title: "Home",
-          href: isAdmin ? "/admin" : null,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="stats-chart" focused={focused} />
-          ),
-        }}
-      />
+        <Tabs.Screen
+          name="admin"
+          options={{
+            title: "Home",
+            href: isAdmin ? "/admin" : null,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon name="stats-chart" focused={focused} />
+            ),
+          }}
+        />
 
-      <Tabs.Screen
-        name="groups"
-        options={{
-          title: "Groups",
-          href: isAdmin ? null : "/groups",
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="people" focused={focused} />
-          ),
-        }}
-      />
+        <Tabs.Screen
+          name="groups"
+          options={{
+            title: "Groups",
+            href: isAdmin ? null : "/groups",
+            tabBarIcon: ({ focused }) => (
+              <TabIcon name="people" focused={focused} />
+            ),
+          }}
+        />
 
-      <Tabs.Screen
-        name="users"
-        options={{
-          title: "Users",
-          href: isAdmin ? "/users" : null,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="person-circle" focused={focused} />
-          ),
-        }}
-      />
+        <Tabs.Screen
+          name="users"
+          options={{
+            title: "Users",
+            href: isAdmin ? "/users" : null,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon name="person-circle" focused={focused} />
+            ),
+          }}
+        />
 
-      <Tabs.Screen
-        name="requests"
-        options={{
-          title: "Requests",
-          href: isAdmin ? null : "/requests",
-          tabBarBadge:
-            pendingRequests > 0
-              ? pendingRequests > 99
-                ? "99+"
-                : pendingRequests
-              : undefined,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="mail-unread" focused={focused} />
-          ),
-        }}
-      />
+        {/*
+          Declared in the middle so it lands in the middle: two member tabs
+          before it, two after. Admins have no create action anywhere, so for
+          them the slot and the dock both go.
+        */}
+        <Tabs.Screen
+          name="create"
+          options={{
+            title: "Create",
+            // `href` is what every other screen hides itself with, but expo-router
+            // throws if it is paired with `tabBarButton` — so this slot hides the
+            // way `href: null` does under the hood, by collapsing the item.
+            tabBarItemStyle: isAdmin ? styles.hidden : styles.item,
+            // An inert spacer. The dock floats over this slot, and a pressable
+            // underneath it would only steal the edges of its hit area.
+            tabBarButton: (props) => (
+              <View pointerEvents="none" style={props.style} />
+            ),
+          }}
+        />
 
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          title: "Alerts",
-          href: isAdmin ? null : "/notifications",
-          tabBarBadge: unread > 0 ? (unread > 99 ? "99+" : unread) : undefined,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="notifications" focused={focused} />
-          ),
-        }}
-      />
+        <Tabs.Screen
+          name="requests"
+          options={{
+            title: "Requests",
+            href: isAdmin ? null : "/requests",
+            tabBarBadge:
+              pendingRequests > 0
+                ? pendingRequests > 99
+                  ? "99+"
+                  : pendingRequests
+                : undefined,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon name="mail-unread" focused={focused} />
+            ),
+          }}
+        />
 
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="person" focused={focused} />
-          ),
-        }}
-      />
-    </Tabs>
+        <Tabs.Screen
+          name="notifications"
+          options={{
+            title: "Alerts",
+            href: isAdmin ? null : "/notifications",
+            tabBarBadge: unread > 0 ? (unread > 99 ? "99+" : unread) : undefined,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon name="notifications" focused={focused} />
+            ),
+          }}
+        />
+
+        {/* Reached from the header, not from the bar — but still a tab route,
+            so switching to it keeps the bar and the other tabs' state. */}
+        <Tabs.Screen name="profile" options={{ title: "Profile", href: null }} />
+      </Tabs>
+
+      {isAdmin ? null : <CreateDock />}
+    </View>
+  );
+}
+
+export default function TabsLayout() {
+  return (
+    <CreateActionProvider>
+      <TabsChrome />
+    </CreateActionProvider>
   );
 }
 
 const useStyles = makeStyles(({ colors, shadow }) => ({
+  root: { flex: 1, backgroundColor: colors.canvas },
   bar: {
     position: "absolute",
     // The bar is pinned `start: 0, end: 0` by the navigator, so the inset has to
@@ -241,6 +340,8 @@ const useStyles = makeStyles(({ colors, shadow }) => ({
    * the bar. This is what makes that pressable fill the full height.
    */
   item: { flex: 1, height: TAB_BAR.height },
+  /** What `href: null` resolves to internally; see the `create` screen. */
+  hidden: { display: "none" },
   /**
    * The box the navigator reserves for `tabBarIcon`, normally 31×28 and pinned
    * to the top of the item under a `justifyContent: 'flex-start'` that no
@@ -267,4 +368,43 @@ const useStyles = makeStyles(({ colors, shadow }) => ({
     top: 6,
     end: 4,
   },
+  dockLayer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    // Above the bar in both stacking models. The layer has no background, so
+    // the elevation buys z-order and casts nothing of its own.
+    zIndex: 12,
+    elevation: 12,
+  },
+  /**
+   * The collar: canvas-coloured and opaque, so the disc looks punched out of
+   * the glass instead of dropped on top of it, and the pill's own edge appears
+   * to bend around it.
+   */
+  dock: {
+    width: DOCK_SIZE,
+    height: DOCK_SIZE,
+    borderRadius: radius.pill,
+    backgroundColor: colors.canvas,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dockDisc: {
+    width: TAB_BAR.dock,
+    height: TAB_BAR.dock,
+    borderRadius: radius.pill,
+    backgroundColor: colors.brandSolid,
+    alignItems: "center",
+    justifyContent: "center",
+    // A brand-tinted glow rather than the neutral drop shadow the bar casts —
+    // it is the one saturated thing in the chrome and it should look lit.
+    shadowColor: colors.brandSolid,
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
+  dockPressed: { transform: [{ scale: 0.92 }] },
 }));

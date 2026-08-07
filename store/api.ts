@@ -24,6 +24,7 @@ import type {
   CreateGroupInput,
   CreateTaskInput,
   InvitationAction,
+  PushTokenInput,
   SignInInput,
   SignUpInput,
   UpdateProfileInput,
@@ -420,6 +421,20 @@ export const api = createApi({
       invalidatesTags: ["Notification"],
     }),
 
+    // ── Push ──────────────────────────────────────────────────────────────
+    // Device registration, not user data — neither endpoint touches a cache
+    // tag, so neither should invalidate one.
+    registerPushToken: build.mutation<{ success: boolean }, PushTokenInput>({
+      query: (body) => ({ url: "/push/tokens", method: "POST", body }),
+    }),
+    unregisterPushToken: build.mutation<{ success: boolean }, string>({
+      query: (token) => ({
+        url: "/push/tokens",
+        method: "DELETE",
+        params: { token },
+      }),
+    }),
+
     // ── Search ────────────────────────────────────────────────────────────
     search: build.query<SearchResults, string>({
       query: (q) => ({ url: "/search", params: { q } }),
@@ -432,6 +447,23 @@ export const api = createApi({
     }),
     changePassword: build.mutation<{ success: boolean }, ChangePasswordInput>({
       query: (body) => ({ url: "/profile/password", method: "POST", body }),
+    }),
+    /**
+     * `fetchBaseQuery` passes FormData through untouched — it only reaches for
+     * JSON.stringify on plain objects — so the multipart boundary React Native
+     * generates survives, and no Content-Type must be set by hand.
+     *
+     * Invalidating Session is what puts the new picture on screen: the URL
+     * carries a fresh object key, so `Image` refetches rather than showing the
+     * cached previous one.
+     */
+    uploadAvatar: build.mutation<{ user: CurrentUser }, FormData>({
+      query: (body) => ({ url: "/profile/avatar", method: "POST", body }),
+      invalidatesTags: ["Session", "Directory"],
+    }),
+    removeAvatar: build.mutation<{ user: CurrentUser }, void>({
+      query: () => ({ url: "/profile/avatar", method: "DELETE" }),
+      invalidatesTags: ["Session", "Directory"],
     }),
 
     // ── Admin ─────────────────────────────────────────────────────────────
@@ -513,9 +545,13 @@ export const {
   useMarkNotificationReadMutation,
   useDeleteNotificationMutation,
   useMarkAllNotificationsReadMutation,
+  useRegisterPushTokenMutation,
+  useUnregisterPushTokenMutation,
   useSearchQuery,
   useUpdateProfileMutation,
   useChangePasswordMutation,
+  useUploadAvatarMutation,
+  useRemoveAvatarMutation,
   useAdminUsersQuery,
   useAdminUserFeedInfiniteQuery,
   useAdminStatsQuery,

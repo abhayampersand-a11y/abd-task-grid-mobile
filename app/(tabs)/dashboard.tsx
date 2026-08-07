@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { spacing } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
 import { useAuth } from "@/lib/auth";
+import { useCreateAction } from "@/lib/create-action";
 import {
   toApiError,
   useDashboardQuery,
@@ -12,13 +13,7 @@ import {
   useTaskStatsQuery,
   type TaskFeedFilters,
 } from "@/store/api";
-import {
-  Body,
-  BrandBar,
-  Fab,
-  IconAction,
-  Screen,
-} from "@/components/ui/Screen";
+import { Body, BrandBar, IconAction, Screen } from "@/components/ui/Screen";
 import { EmptyState, ErrorNote, StatTile } from "@/components/ui/primitives";
 import {
   FilterBarSkeleton,
@@ -33,6 +28,7 @@ import { TaskList } from "@/components/app/TaskList";
 import { TaskFilterBar } from "@/components/app/TaskFilterBar";
 import { CreateTaskSheet } from "@/components/app/CreateTaskSheet";
 import { CreateGroupSheet } from "@/components/app/CreateGroupSheet";
+import { ProfileButton } from "@/components/app/ProfileButton";
 
 type Scope = "assigned-to-me" | "assigned-by-me" | "all";
 
@@ -56,12 +52,24 @@ export default function Dashboard() {
   const [taskSheet, setTaskSheet] = useState(false);
   const [groupSheet, setGroupSheet] = useState(false);
 
+  const overview = useDashboardQuery();
+  const groups = overview.data?.groups;
+
+  /**
+   * A group left or deleted in another session would otherwise keep filtering
+   * the feed by an id the API answers with a 403, so the id only survives while
+   * the picker can still name it.
+   */
+  const groupId =
+    filters.groupId && groups?.some((group) => group.id === filters.groupId)
+      ? filters.groupId
+      : "";
+
   const query = useMemo(
-    () => ({ ...filters, scope, pageSize: PAGE_SIZE }),
-    [filters, scope],
+    () => ({ ...filters, groupId, scope, pageSize: PAGE_SIZE }),
+    [filters, groupId, scope],
   );
 
-  const overview = useDashboardQuery();
   const notifications = useNotificationsQuery();
   /**
    * Changing a filter changes the cache key, so the feed drops back to a single
@@ -77,7 +85,7 @@ export default function Dashboard() {
    */
   const stats = useTaskStatsQuery(query);
 
-  const hasGroups = (overview.data?.groups.length ?? 0) > 0;
+  const hasGroups = (groups?.length ?? 0) > 0;
   const pages = tasks.data?.pages;
   const list = useMemo(
     () => pages?.flatMap((page) => page.tasks) ?? [],
@@ -92,6 +100,17 @@ export default function Dashboard() {
    * loading, error and the no-groups empty state all scroll as one page.
    */
   const showControls = !overview.isLoading && !overview.isError && hasGroups;
+
+  /**
+   * The tab bar's create button is this screen's while it is focused. With no
+   * group there is nothing to file a task under, so the button offers the step
+   * that comes first instead — the same swap the empty state makes.
+   */
+  useCreateAction(
+    hasGroups
+      ? { label: "Create a task", onPress: () => setTaskSheet(true) }
+      : { label: "Create a group", onPress: () => setGroupSheet(true) },
+  );
 
   function refresh() {
     void overview.refetch();
@@ -122,12 +141,15 @@ export default function Dashboard() {
         subtitle={greeting()}
         title={user?.fullName.split(" ")[0] ?? "TaskFlow"}
         right={
-          <IconAction
-            icon="notifications-outline"
-            label="Notifications"
-            badge={notifications.data?.unreadCount}
-            onPress={() => router.push("/notifications")}
-          />
+          <>
+            <IconAction
+              icon="notifications-outline"
+              label="Notifications"
+              badge={notifications.data?.unreadCount}
+              onPress={() => router.push("/notifications")}
+            />
+            <ProfileButton />
+          </>
         }
       />
 
@@ -206,7 +228,8 @@ export default function Dashboard() {
               <TaskFilterBar
                 filters={filters}
                 onChange={setFilters}
-                title="Tasks"
+                groups={groups}
+                title="All groups"
                 count={total}
               />
             </>
@@ -271,11 +294,12 @@ export default function Dashboard() {
         )}
       </Body>
 
-      {hasGroups ? (
-        <Fab label="Create a task" onPress={() => setTaskSheet(true)} />
-      ) : null}
-
-      <CreateTaskSheet visible={taskSheet} onClose={() => setTaskSheet(false)} />
+      {/* Creating from a group-filtered feed starts on that group. */}
+      <CreateTaskSheet
+        visible={taskSheet}
+        groupId={groupId || undefined}
+        onClose={() => setTaskSheet(false)}
+      />
       <CreateGroupSheet visible={groupSheet} onClose={() => setGroupSheet(false)} />
     </Screen>
   );

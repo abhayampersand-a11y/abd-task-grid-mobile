@@ -15,6 +15,7 @@ import { Body, BrandBar, Screen } from "@/components/ui/Screen";
 import { Avatar, EmptyState, ErrorNote } from "@/components/ui/primitives";
 import { RequestListSkeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
+import { ProfileButton } from "@/components/app/ProfileButton";
 
 export default function Requests() {
   const router = useRouter();
@@ -54,6 +55,7 @@ export default function Requests() {
             ? `${list.length} waiting on you`
             : "Nothing to answer"
         }
+        right={<ProfileButton />}
       />
 
       <Body refreshing={isFetching && !isLoading} onRefresh={refetch}>

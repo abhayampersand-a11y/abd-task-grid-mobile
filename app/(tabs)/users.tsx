@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/Button";
 import { InfiniteFooter } from "@/components/ui/InfiniteFooter";
 import { Sheet } from "@/components/ui/Sheet";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { ProfileButton } from "@/components/app/ProfileButton";
 
 type Tint = { label: string; bg: string; fg: string; dot: string };
 
@@ -146,6 +147,7 @@ export default function AdminUsers() {
       <BrandBar
         title="Users"
         subtitle={totals ? `${totals.all} in the directory` : undefined}
+        right={<ProfileButton />}
       />
 
       {/* Search and status stay put; only the directory below them scrolls. */}
