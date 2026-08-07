@@ -14,24 +14,24 @@
 export type Scheme = "light" | "dark";
 
 export const lightColors = {
-  canvas: "#f6f7f9",
+  canvas: "#f3f3f6",
   surface: "#ffffff",
-  surfaceMuted: "#fafbfc",
+  surfaceMuted: "#f7f7fa",
 
-  line: "#e6e8ee",
-  lineStrong: "#d5d8e2",
+  line: "#eaeaf0",
+  lineStrong: "#dadae3",
 
-  ink: "#0f1222",
-  inkSoft: "#4a4f63",
-  inkMuted: "#767c92",
-  inkFaint: "#9aa0b4",
+  ink: "#101014",
+  inkSoft: "#44444f",
+  inkMuted: "#71717e",
+  inkFaint: "#9c9cab",
 
-  brand50: "#eef0ff",
-  brand100: "#e0e3ff",
-  brand200: "#c6cbff",
-  brand500: "#6650f2",
-  brand600: "#4f39f6",
-  brand700: "#4127d9",
+  brand50: "#f1eeff",
+  brand100: "#e4dfff",
+  brand200: "#cbc0ff",
+  brand500: "#7b61ff",
+  brand600: "#6544f5",
+  brand700: "#4f2fdd",
 
   /**
    * `brand600` doubles as a fill and as a text colour on the web, and in dark
@@ -39,18 +39,28 @@ export const lightColors = {
    * while a fill has to stay saturated enough for white text. They are split
    * here so neither has to compromise.
    */
-  brandSolid: "#4f39f6",
-  brandText: "#4127d9",
+  brandSolid: "#6544f5",
+  brandText: "#4f2fdd",
 
   white: "#ffffff",
   /** Always white — it labels a `brandSolid` fill, which is dark in both themes. */
   onBrand: "#ffffff",
-  overlay: "rgba(15, 18, 34, 0.45)",
+  overlay: "rgba(10, 10, 13, 0.5)",
+
+  /**
+   * The floating tab bar's scrim, sitting *behind* its blur. Deliberately
+   * translucent so the blur has something to work with, and deliberately not
+   * transparent: it is the whole appearance wherever the blur cannot run
+   * (Android below SDK 31), and a transparent view casts no iOS shadow.
+   */
+  glass: "rgba(255, 255, 255, 0.62)",
+  /** The bright edge that separates glass from what it floats over. */
+  glassLine: "rgba(15, 15, 20, 0.07)",
 
   // Tint stops borrowed from Tailwind for chips, dots and avatars.
-  slate100: "#f1f5f9",
-  slate400: "#94a3b8",
-  slate600: "#475569",
+  slate100: "#f1f1f5",
+  slate400: "#a0a0ae",
+  slate600: "#4c4c58",
   sky50: "#f0f9ff",
   sky100: "#e0f2fe",
   sky500: "#0ea5e9",
@@ -85,64 +95,73 @@ export const lightColors = {
 /** Every colour the app can name. Both palettes must supply all of them. */
 export type Palette = typeof lightColors;
 
+/**
+ * Near-black and neutral rather than blue-grey: the chrome stays out of the way
+ * so the only saturated things on screen are the status dots and avatars. The
+ * three greys below the canvas are deliberately close together — depth comes
+ * from the radius and the shadow, not from a step in lightness.
+ */
 export const darkColors: Palette = {
-  canvas: "#0c0e15",
-  surface: "#151823",
-  surfaceMuted: "#1c2030",
+  canvas: "#0a0a0d",
+  surface: "#16161b",
+  surfaceMuted: "#1e1e25",
 
-  line: "#262b3a",
-  lineStrong: "#353b4e",
+  line: "#26262e",
+  lineStrong: "#35353f",
 
-  ink: "#eef1f6",
-  inkSoft: "#c2c8d4",
-  inkMuted: "#8d94a4",
-  inkFaint: "#6a7183",
+  ink: "#f6f6f8",
+  inkSoft: "#c6c6d0",
+  inkMuted: "#8b8b98",
+  inkFaint: "#66667a",
 
-  brand50: "#171a35",
-  brand100: "#1e2246",
-  brand200: "#2a2f60",
-  brand500: "#6650f2",
-  brand600: "#a5a0ff",
-  brand700: "#c1beff",
+  brand50: "#191634",
+  brand100: "#221d47",
+  brand200: "#2f2866",
+  brand500: "#7b61ff",
+  brand600: "#b0a1ff",
+  brand700: "#cbc0ff",
 
-  brandSolid: "#6650f2",
-  brandText: "#c1beff",
+  brandSolid: "#7b61ff",
+  brandText: "#cbc0ff",
 
   white: "#ffffff",
   onBrand: "#ffffff",
-  overlay: "rgba(0, 0, 0, 0.62)",
+  overlay: "rgba(0, 0, 0, 0.7)",
 
-  slate100: "#1f2430",
-  slate400: "#94a3b8",
-  slate600: "#a8b0c0",
-  sky50: "#0d2231",
-  sky100: "#112e42",
+  glass: "rgba(24, 24, 30, 0.55)",
+  glassLine: "rgba(255, 255, 255, 0.09)",
+
+  slate100: "#22222a",
+  slate400: "#9a9aa8",
+  slate600: "#b2b2c0",
+  sky50: "#0a2130",
+  sky100: "#0e2c40",
   sky500: "#0ea5e9",
   sky700: "#8adcf9",
-  blue50: "#0f1e35",
+  blue50: "#0c1c33",
   blue500: "#3b82f6",
   blue700: "#a5c8ff",
-  indigo50: "#141833",
-  indigo100: "#1c2046",
+  indigo50: "#121633",
+  indigo100: "#191d44",
   indigo500: "#6366f1",
   indigo700: "#c1beff",
-  violet50: "#1e1633",
-  violet100: "#281d45",
+  violet50: "#1c1433",
+  violet100: "#261b45",
   violet500: "#8b5cf6",
   violet700: "#cbbaff",
-  emerald50: "#0d2620",
-  emerald100: "#113329",
+  emerald50: "#0a251f",
+  emerald100: "#0e3228",
   emerald500: "#10b981",
   emerald700: "#7cebbb",
-  amber50: "#2a1f0a",
-  amber100: "#3a2a0d",
+  amber50: "#281d08",
+  amber100: "#38280b",
   amber500: "#f59e0b",
   amber700: "#fcd383",
-  rose50: "#2a1218",
-  rose100: "#3a1720",
+  rose50: "#281016",
+  rose100: "#38151e",
   rose500: "#f43f5e",
   rose700: "#ffb3c1",
-  teal100: "#0d2b2b",
+  teal100: "#0a2a2a",
   teal700: "#6fe3d8",
 };
 
@@ -161,17 +180,35 @@ export const spacing = {
   "3xl": 32,
 } as const;
 
+/**
+ * Generous by design — the whole layout reads as a stack of soft slabs, so a
+ * card is nearer a squircle than a rectangle and anything interactive that is
+ * not a card is a pill.
+ */
 export const radius = {
-  sm: 8,
-  md: 12,
-  card: 16,
-  lg: 20,
+  sm: 10,
+  md: 14,
+  card: 22,
+  lg: 28,
   pill: 999,
 } as const;
 
 /** MOBILE.md mandates a 44pt minimum hit area for anything tappable. */
 export const HIT_SLOP = { top: 8, bottom: 8, left: 8, right: 8 } as const;
 export const MIN_TAP = 44;
+
+/**
+ * The floating tab bar's geometry, in one place: the bar draws itself from it,
+ * and every screen scrolls clear of it by the same numbers. They have to agree,
+ * because the bar is out of the layout flow and pays nothing back to the scroll
+ * view underneath it.
+ */
+export const TAB_BAR = {
+  /** Height of the pill itself. */
+  height: 64,
+  /** Gap between the pill and the safe-area edge, on all three sides. */
+  inset: spacing.md,
+} as const;
 
 export interface Shadows {
   soft: object;
@@ -224,9 +261,9 @@ export interface TextStyles {
 
 export function textFor(colors: Palette): TextStyles {
   return {
-    /** Headlines step down one notch on phones, per MOBILE.md. */
-    title: { fontSize: 24, fontWeight: "700", color: colors.ink },
-    heading: { fontSize: 19, fontWeight: "700", color: colors.ink },
+    /** The one display size: large, heavy and tightly tracked. */
+    title: { fontSize: 30, fontWeight: "800", letterSpacing: -0.6, color: colors.ink },
+    heading: { fontSize: 19, fontWeight: "700", letterSpacing: -0.2, color: colors.ink },
     subheading: { fontSize: 16, fontWeight: "600", color: colors.ink },
     body: { fontSize: 15, fontWeight: "400", color: colors.inkSoft },
     label: { fontSize: 13, fontWeight: "600", color: colors.inkSoft },

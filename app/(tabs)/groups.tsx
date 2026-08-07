@@ -39,7 +39,25 @@ export default function Groups() {
         subtitle={`${groups.length} group${groups.length === 1 ? "" : "s"}`}
       />
 
-      <Body refreshing={isFetching && !isLoading} onRefresh={refetch}>
+      {/* The roll-up stays put; only the list of groups scrolls under it. */}
+      <Body
+        refreshing={isFetching && !isLoading}
+        onRefresh={refetch}
+        sticky={
+          !isLoading && !isError && groups.length > 0 ? (
+            <Card style={styles.banner}>
+              <View style={styles.bannerRow}>
+                <Text style={styles.bannerTitle}>Across all groups</Text>
+                <Text style={styles.bannerValue}>{completion}%</Text>
+              </View>
+              <ProgressBar value={completion} />
+              <Text style={styles.bannerMeta}>
+                {totals.done} of {totals.tasks} tasks complete
+              </Text>
+            </Card>
+          ) : undefined
+        }
+      >
         {isLoading ? (
           <>
             <Card style={styles.banner}>
@@ -69,24 +87,11 @@ export default function Groups() {
             }
           />
         ) : (
-          <>
-            <Card style={styles.banner}>
-              <View style={styles.bannerRow}>
-                <Text style={styles.bannerTitle}>Across all groups</Text>
-                <Text style={styles.bannerValue}>{completion}%</Text>
-              </View>
-              <ProgressBar value={completion} />
-              <Text style={styles.bannerMeta}>
-                {totals.done} of {totals.tasks} tasks complete
-              </Text>
-            </Card>
-
-            <View style={styles.list}>
-              {groups.map((group) => (
-                <GroupCard key={group.id} group={group} />
-              ))}
-            </View>
-          </>
+          <View style={styles.list}>
+            {groups.map((group) => (
+              <GroupCard key={group.id} group={group} />
+            ))}
+          </View>
         )}
       </Body>
 

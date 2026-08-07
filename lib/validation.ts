@@ -132,14 +132,18 @@ export const checklistToggleSchema = z.object({ done: z.boolean() });
 export const updateProfileSchema = z.object({
   fullName: z.string().trim().min(2, "Please enter your full name.").max(80),
   jobTitle: z.string().trim().max(80).optional().or(z.literal("")),
-  mobile: mobileSchema,
+  // Optional because accounts created through a social provider start without
+  // a number; clearing the field is how such a user leaves it unset.
+  mobile: mobileSchema.optional().or(z.literal("")),
   bio: z.string().trim().max(500).optional().or(z.literal("")),
   avatarUrl: z.string().trim().max(500).optional().nullable(),
 });
 
 export const changePasswordSchema = z
   .object({
-    currentPassword: z.string().min(1, "Enter your current password."),
+    // A social-only account has no password to confirm, so the requirement is
+    // enforced by the API against the stored hash rather than by this schema.
+    currentPassword: z.string().optional(),
     newPassword: passwordSchema,
     confirmPassword: z.string(),
   })

@@ -10,6 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { HIT_SLOP, radius, spacing } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
+import { useKeyboardReveal } from "@/components/ui/KeyboardAvoider";
 
 interface Props {
   label: string;
@@ -43,6 +44,7 @@ export function TextField({
   const [focused, setFocused] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const { colors, scheme } = useTheme();
+  const reveal = useKeyboardReveal();
   const styles = useStyles();
 
   return (
@@ -73,7 +75,12 @@ export function TextField({
           autoCorrect={false}
           keyboardType={keyboardType}
           editable={editable}
-          onFocus={() => setFocused(true)}
+          onFocus={() => {
+            setFocused(true);
+            // Moving between fields with the keyboard already up fires no
+            // keyboard event, so the scroller has to be told directly.
+            reveal();
+          }}
           onBlur={() => setFocused(false)}
           style={[styles.input, multiline && styles.inputMultiline]}
         />
@@ -104,23 +111,25 @@ export function TextField({
 }
 
 const useStyles = makeStyles(({ colors }) => ({
-  wrap: { gap: 6 },
-  label: { fontSize: 13, fontWeight: "600", color: colors.inkSoft },
+  wrap: { gap: 7 },
+  label: { fontSize: 13, fontWeight: "600", color: colors.inkMuted },
+  // Filled rather than outlined: on a near-black canvas a 1px border is the
+  // faintest thing on screen, so the fill is what makes the field findable.
   field: {
-    minHeight: 48,
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.card,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceMuted,
   },
   fieldMultiline: { minHeight: 110, alignItems: "flex-start" },
-  fieldFocused: { borderColor: colors.brand600 },
+  fieldFocused: { borderColor: colors.brand500 },
   fieldError: { borderColor: colors.rose500 },
-  fieldDisabled: { backgroundColor: colors.surfaceMuted },
+  fieldDisabled: { opacity: 0.6 },
   input: {
     flex: 1,
     // 16px minimum so iOS does not zoom the viewport on focus (MOBILE.md §5).

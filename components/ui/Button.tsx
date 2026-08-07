@@ -7,7 +7,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { MIN_TAP, radius, spacing, type Palette } from "@/lib/theme";
+import { radius, spacing, type Palette } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
@@ -110,18 +110,20 @@ export function Button({
 }
 
 const useStyles = makeStyles(() => ({
+  // Fully rounded at both sizes: every control in this design is either a pill
+  // or a slab, and a button is never the latter.
   base: {
-    minHeight: MIN_TAP,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.md,
+    minHeight: 50,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.pill,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
   small: {
-    minHeight: 36,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.sm,
+    minHeight: 38,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
   },
   fullWidth: { alignSelf: "stretch" },
   pressed: { transform: [{ scale: 0.98 }] },
@@ -130,6 +132,6 @@ const useStyles = makeStyles(() => ({
     alignItems: "center",
     gap: spacing.sm,
   },
-  label: { fontSize: 15, fontWeight: "600" },
+  label: { fontSize: 15, fontWeight: "700", letterSpacing: -0.1 },
   labelSmall: { fontSize: 13 },
 }));

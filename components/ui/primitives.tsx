@@ -138,21 +138,38 @@ export function StatTile({
 }) {
   const styles = useStyles();
 
+  // Selected inverts the whole tile, so every layer on top of it has to flip
+  // with it — text, label and the icon chip alike.
   const body = compact ? (
     <>
-      <Text style={styles.chipValue}>{value}</Text>
+      <Text style={[styles.chipValue, active && styles.onInverted]}>
+        {value}
+      </Text>
       <View style={[styles.chipDot, { backgroundColor: tint.dot }]} />
-      <Text style={styles.chipLabel} numberOfLines={1}>
+      <Text
+        style={[styles.chipLabel, active && styles.onInvertedSoft]}
+        numberOfLines={1}
+      >
         {label}
       </Text>
     </>
   ) : (
     <>
-      <View style={[styles.tileIcon, { backgroundColor: tint.bg }]}>
-        <Ionicons name={icon} size={17} color={tint.fg} />
+      <View
+        style={[
+          styles.tileIcon,
+          { backgroundColor: active ? tint.dot : tint.bg },
+        ]}
+      >
+        <Ionicons name={icon} size={17} color={active ? tint.bg : tint.fg} />
       </View>
-      <Text style={styles.tileValue}>{value}</Text>
-      <Text style={styles.tileLabel} numberOfLines={1}>
+      <Text style={[styles.tileValue, active && styles.onInverted]}>
+        {value}
+      </Text>
+      <Text
+        style={[styles.tileLabel, active && styles.onInvertedSoft]}
+        numberOfLines={1}
+      >
         {label}
       </Text>
     </>
@@ -266,8 +283,8 @@ const useStyles = makeStyles(({ colors, shadow }) => ({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: radius.pill,
   },
   chipText: { fontSize: 12, fontWeight: "600" },
@@ -275,20 +292,23 @@ const useStyles = makeStyles(({ colors, shadow }) => ({
   avatar: { alignItems: "center", justifyContent: "center" },
   track: {
     height: 6,
-    borderRadius: 3,
+    borderRadius: radius.pill,
     backgroundColor: colors.line,
     overflow: "hidden",
   },
-  fill: { height: "100%", borderRadius: 3 },
-  tile: { flex: 1, gap: 6, padding: spacing.md },
-  tileActive: { borderColor: colors.brand200, backgroundColor: colors.brand50 },
+  fill: { height: "100%", borderRadius: radius.pill },
+  tile: { flex: 1, gap: 8, padding: spacing.lg },
+  /** Selected reads as an inverted slab, matching the selected tab. */
+  tileActive: { borderColor: colors.ink, backgroundColor: colors.ink },
   tilePressed: { opacity: 0.75, transform: [{ scale: 0.98 }] },
+  /** The scrolling filter strip: a row of pills, like the reference's chips. */
   statChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 9,
+    gap: 7,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
   },
   chipValue: { fontSize: 18, fontWeight: "700", color: colors.ink },
   chipDot: { width: 6, height: 6, borderRadius: 3 },
@@ -299,14 +319,17 @@ const useStyles = makeStyles(({ colors, shadow }) => ({
     textTransform: "uppercase",
     color: colors.inkSoft,
   },
+  /** Reading order on top of `tileActive`, which is filled with `ink`. */
+  onInverted: { color: colors.canvas },
+  onInvertedSoft: { color: colors.inkFaint },
   tileIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.sm,
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
   },
-  tileValue: { fontSize: 22, fontWeight: "700", color: colors.ink },
+  tileValue: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5, color: colors.ink },
   tileLabel: { fontSize: 12, fontWeight: "500", color: colors.inkMuted },
   sectionHeading: {
     flexDirection: "row",
@@ -314,7 +337,12 @@ const useStyles = makeStyles(({ colors, shadow }) => ({
     justifyContent: "space-between",
     marginBottom: spacing.md,
   },
-  sectionTitle: { fontSize: 16, fontWeight: "700", color: colors.ink },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+    color: colors.ink,
+  },
   empty: {
     alignItems: "center",
     paddingVertical: spacing["3xl"],
@@ -322,9 +350,9 @@ const useStyles = makeStyles(({ colors, shadow }) => ({
     gap: spacing.sm,
   },
   emptyIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 64,
+    height: 64,
+    borderRadius: radius.pill,
     backgroundColor: colors.brand50,
     alignItems: "center",
     justifyContent: "center",
@@ -344,8 +372,8 @@ const useStyles = makeStyles(({ colors, shadow }) => ({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: radius.md,
+    padding: spacing.lg,
+    borderRadius: radius.card,
     backgroundColor: colors.rose50,
     borderWidth: 1,
     borderColor: colors.rose100,

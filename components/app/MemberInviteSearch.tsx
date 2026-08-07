@@ -7,6 +7,7 @@ import { useLookupUserQuery } from "@/store/api";
 import type { UserSummary } from "@/lib/types";
 import { Avatar } from "@/components/ui/primitives";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { useKeyboardReveal } from "@/components/ui/KeyboardAvoider";
 
 /** Deliberately strict: the box only answers to a complete address. */
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -38,6 +39,7 @@ export function MemberInviteSearch({
   const [term, setTerm] = useState("");
   const [debounced, setDebounced] = useState("");
   const { colors, scheme } = useTheme();
+  const reveal = useKeyboardReveal();
   const styles = useStyles();
 
   useEffect(() => {
@@ -77,6 +79,7 @@ export function MemberInviteSearch({
           value={term}
           onChangeText={setTerm}
           onSubmitEditing={invite}
+          onFocus={reveal}
           placeholder="teammate@company.com"
           placeholderTextColor={colors.inkFaint}
           keyboardAppearance={scheme}
@@ -199,13 +202,13 @@ const useStyles = makeStyles(({ colors }) => ({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
-    padding: spacing.sm,
-    borderRadius: radius.md,
+    padding: spacing.md,
+    borderRadius: radius.card,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceMuted,
   },
-  resultOk: { borderColor: colors.brand100, backgroundColor: colors.brand50 },
+  resultOk: { borderColor: colors.brand200, backgroundColor: colors.brand50 },
   resultText: { flex: 1, gap: 1 },
   skeletonGap: { marginTop: 5 },
   invite: {
@@ -226,10 +229,10 @@ const useStyles = makeStyles(({ colors }) => ({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.md,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-    backgroundColor: colors.canvas,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceMuted,
   },
   rowText: { flex: 1, gap: 1 },
   name: { fontSize: 14, fontWeight: "600", color: colors.ink },

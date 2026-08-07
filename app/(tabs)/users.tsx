@@ -7,10 +7,10 @@ import { formatDate } from "@/lib/format";
 import type { AdminUserRow, UserStatus } from "@/lib/types";
 import {
   toApiError,
-  useAdminUsersQuery,
+  useAdminUserFeedInfiniteQuery,
   useDeleteUserMutation,
   useSetUserStatusMutation,
-  type AdminUserFilters,
+  type AdminUserFeedFilters,
 } from "@/store/api";
 import { Body, BrandBar, Screen } from "@/components/ui/Screen";
 import {
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/primitives";
 import { UserListSkeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
+import { InfiniteFooter } from "@/components/ui/InfiniteFooter";
 import { Sheet } from "@/components/ui/Sheet";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 
@@ -50,21 +51,64 @@ function statusTints(colors: Palette): Record<UserStatus, Tint> {
   };
 }
 
-export default function AdminUsers() {
+/**
+ * Pinned above the scroller by `<Body sticky>`, so it needs no keyboard reveal
+ * of its own — the avoider takes the space out of the list below it.
+ */
+function UserSearch({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
   const { colors, scheme } = useTheme();
+  const styles = useStyles();
+
+  return (
+    <View style={styles.search}>
+      <Ionicons name="search" size={17} color={colors.inkMuted} />
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        placeholder="Search name or email"
+        placeholderTextColor={colors.inkFaint}
+        keyboardAppearance={scheme}
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={styles.searchInput}
+      />
+    </View>
+  );
+}
+
+export default function AdminUsers() {
+  const { colors } = useTheme();
   const styles = useStyles();
   const tints = statusTints(colors);
 
-  const [filters, setFilters] = useState<AdminUserFilters>({ page: 1 });
+  const [filters, setFilters] = useState<AdminUserFeedFilters>({});
   const [selected, setSelected] = useState<AdminUserRow | null>(null);
 
-  const { data, isLoading, isFetching, isError, error, refetch } =
-    useAdminUsersQuery(filters);
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    isError,
+    error,
+    refetch,
+  } = useAdminUserFeedInfiniteQuery(filters);
   const [setStatus] = useSetUserStatusMutation();
   const [deleteUser] = useDeleteUserMutation();
 
-  const rows = data?.items ?? [];
-  const totals = data?.totals;
+  const pages = data?.pages;
+  const rows = pages?.flatMap((page) => page.items) ?? [];
+  // Each page restates the directory counts; the newest one is the least stale.
+  const last = pages?.[pages.length - 1];
+  const totals = last?.totals;
 
   function toggleStatus(user: AdminUserRow) {
     const next: "ACTIVE" | "DISABLED" =
@@ -104,41 +148,46 @@ export default function AdminUsers() {
         subtitle={totals ? `${totals.all} in the directory` : undefined}
       />
 
-      <Body refreshing={isFetching && !isLoading} onRefresh={refetch}>
-        <View style={styles.controls}>
-          <View style={styles.search}>
-            <Ionicons name="search" size={17} color={colors.inkMuted} />
-            <TextInput
+      {/* Search and status stay put; only the directory below them scrolls. */}
+      <Body
+        // Paging is not refreshing — without the guard, reaching the bottom
+        // spins the pull-to-refresh control at the top of the list.
+        refreshing={isFetching && !isLoading && !isFetchingNextPage}
+        onRefresh={refetch}
+        onEndReached={hasNextPage ? () => void fetchNextPage() : undefined}
+        sticky={
+          <>
+            <UserSearch
               value={filters.q ?? ""}
-              onChangeText={(value) =>
-                setFilters((current) => ({ ...current, q: value, page: 1 }))
+              onChange={(value) =>
+                setFilters((current) => ({ ...current, q: value }))
               }
-              placeholder="Search name or email"
-              placeholderTextColor={colors.inkFaint}
-              keyboardAppearance={scheme}
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={styles.searchInput}
             />
-          </View>
 
-          <SegmentedControl
-            segments={[
-              { value: "", label: "All", count: totals?.all },
-              { value: "ACTIVE", label: "Active", count: totals?.active },
-              { value: "DISABLED", label: "Disabled", count: totals?.disabled },
-            ]}
-            value={filters.status ?? ""}
-            onChange={(value) =>
-              setFilters((current) => ({ ...current, status: value, page: 1 }))
-            }
-            scrollable
-          />
-        </View>
-
+            <SegmentedControl
+              segments={[
+                { value: "", label: "All", count: totals?.all },
+                { value: "ACTIVE", label: "Active", count: totals?.active },
+                {
+                  value: "DISABLED",
+                  label: "Disabled",
+                  count: totals?.disabled,
+                },
+              ]}
+              value={filters.status ?? ""}
+              onChange={(value) =>
+                setFilters((current) => ({ ...current, status: value }))
+              }
+              scrollable
+            />
+          </>
+        }
+      >
         {isLoading ? (
           <UserListSkeleton count={6} />
-        ) : isError ? (
+        ) : isError && rows.length === 0 ? (
+          // A later page failing keeps the rows already loaded on screen; the
+          // footer offers the retry rather than the list vanishing.
           <ErrorNote message={toApiError(error).message} />
         ) : rows.length === 0 ? (
           <EmptyState
@@ -199,37 +248,14 @@ export default function AdminUsers() {
               ))}
             </View>
 
-            {data && data.totalPages > 1 ? (
-              <View style={styles.pager}>
-                <Button
-                  label="Previous"
-                  variant="secondary"
-                  size="sm"
-                  disabled={data.page <= 1}
-                  onPress={() =>
-                    setFilters((current) => ({
-                      ...current,
-                      page: Math.max(1, (current.page ?? 1) - 1),
-                    }))
-                  }
-                />
-                <Text style={styles.pagerText}>
-                  Page {data.page} of {data.totalPages}
-                </Text>
-                <Button
-                  label="Next"
-                  variant="secondary"
-                  size="sm"
-                  disabled={data.page >= data.totalPages}
-                  onPress={() =>
-                    setFilters((current) => ({
-                      ...current,
-                      page: (current.page ?? 1) + 1,
-                    }))
-                  }
-                />
-              </View>
-            ) : null}
+            <InfiniteFooter
+              loading={isFetchingNextPage}
+              hasMore={hasNextPage}
+              count={rows.length}
+              total={last?.total}
+              noun="users"
+              onRetry={isError ? () => void fetchNextPage() : undefined}
+            />
           </>
         )}
       </Body>
@@ -263,7 +289,6 @@ export default function AdminUsers() {
 }
 
 const useStyles = makeStyles(({ colors }) => ({
-  controls: { gap: spacing.md },
   search: {
     flexDirection: "row",
     alignItems: "center",
@@ -293,11 +318,4 @@ const useStyles = makeStyles(({ colors }) => ({
     alignItems: "center",
     justifyContent: "center",
   },
-  pager: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: spacing.md,
-  },
-  pagerText: { fontSize: 13, fontWeight: "600", color: colors.inkMuted },
 }));

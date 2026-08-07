@@ -552,31 +552,31 @@ const useStyles = makeStyles(({ colors, shadow }) => ({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  badge: { borderRadius: radius.md },
+  badge: { borderRadius: radius.pill },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   progress: { gap: 6 },
 
   tiles: { gap: spacing.md },
   tileRow: { flexDirection: "row", gap: spacing.md },
-  tile: { flex: 1, gap: 6, padding: spacing.md },
-  tileIcon: { borderRadius: radius.sm },
+  tile: { flex: 1, gap: 8, padding: spacing.lg },
+  tileIcon: { borderRadius: radius.pill },
 
   segmented: {
     flexDirection: "row",
     gap: 4,
-    padding: 4,
-    borderRadius: radius.md,
-    backgroundColor: colors.canvas,
+    padding: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
   },
-  segment: { flex: 1, borderRadius: radius.sm },
+  segment: { flex: 1, borderRadius: radius.pill },
 
   strip: { flexDirection: "row", gap: spacing.sm, overflow: "hidden" },
-  chip: { borderRadius: radius.card },
+  chip: { borderRadius: radius.pill },
 
-  filterRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  filterButton: { borderRadius: radius.md },
+  filterRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  filterButton: { borderRadius: radius.pill },
 
   rowsCard: {
     backgroundColor: colors.surface,
@@ -604,7 +604,7 @@ const useStyles = makeStyles(({ colors, shadow }) => ({
   notification: { flexDirection: "row", alignItems: "flex-start", gap: spacing.md },
   request: { gap: spacing.md },
   actions: { flexDirection: "row", gap: spacing.sm },
-  action: { flex: 1, borderRadius: radius.md },
+  action: { flex: 1, borderRadius: radius.pill },
   userRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -615,5 +615,5 @@ const useStyles = makeStyles(({ colors, shadow }) => ({
   identity: { flexDirection: "row", alignItems: "center", gap: spacing.lg },
   form: { gap: spacing.lg },
   field: { gap: 6 },
-  input: { borderRadius: radius.md },
+  input: { borderRadius: radius.card },
 }));

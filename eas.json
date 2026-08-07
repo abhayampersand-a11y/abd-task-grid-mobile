@@ -16,7 +16,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://REPLACE-WITH-VERCEL-URL.vercel.app"
+        "EXPO_PUBLIC_API_URL": "https://abd-task-grid.vercel.app"
       }
     },
     "production": {
@@ -24,7 +24,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://REPLACE-WITH-VERCEL-URL.vercel.app"
+        "EXPO_PUBLIC_API_URL": "https://abd-task-grid.vercel.app"
       }
     }
   },

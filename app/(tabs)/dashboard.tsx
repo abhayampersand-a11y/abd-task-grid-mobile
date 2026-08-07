@@ -8,9 +8,9 @@ import {
   toApiError,
   useDashboardQuery,
   useNotificationsQuery,
-  useTasksQuery,
+  useTaskFeedInfiniteQuery,
   useTaskStatsQuery,
-  type TaskFilters,
+  type TaskFeedFilters,
 } from "@/store/api";
 import {
   Body,
@@ -27,7 +27,7 @@ import {
   TaskListSkeleton,
 } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
-import { Pagination } from "@/components/ui/Pagination";
+import { InfiniteFooter } from "@/components/ui/InfiniteFooter";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { TaskList } from "@/components/app/TaskList";
 import { TaskFilterBar } from "@/components/app/TaskFilterBar";
@@ -52,10 +52,7 @@ export default function Dashboard() {
   const styles = useStyles();
 
   const [scope, setScope] = useState<Scope>("assigned-to-me");
-  const [filters, setFilters] = useState<TaskFilters>({
-    page: 1,
-    pageSize: PAGE_SIZE,
-  });
+  const [filters, setFilters] = useState<TaskFeedFilters>({});
   const [taskSheet, setTaskSheet] = useState(false);
   const [groupSheet, setGroupSheet] = useState(false);
 
@@ -66,7 +63,11 @@ export default function Dashboard() {
 
   const overview = useDashboardQuery();
   const notifications = useNotificationsQuery();
-  const tasks = useTasksQuery(query);
+  /**
+   * Changing a filter changes the cache key, so the feed drops back to a single
+   * page on its own — there is no scroll position to reset by hand.
+   */
+  const tasks = useTaskFeedInfiniteQuery(query);
 
   /**
    * The tiles are the status breakdown of whatever the list is showing, so they
@@ -77,8 +78,20 @@ export default function Dashboard() {
   const stats = useTaskStatsQuery(query);
 
   const hasGroups = (overview.data?.groups.length ?? 0) > 0;
-  const list = tasks.data?.tasks ?? [];
+  const pages = tasks.data?.pages;
+  const list = useMemo(
+    () => pages?.flatMap((page) => page.tasks) ?? [],
+    [pages],
+  );
+  // The newest page carries the freshest total; page one's may be minutes old.
+  const total = pages?.[pages.length - 1]?.total;
   const counts = stats.data;
+
+  /**
+   * The pinned controls only mean anything once there is a list to steer, so
+   * loading, error and the no-groups empty state all scroll as one page.
+   */
+  const showControls = !overview.isLoading && !overview.isError && hasGroups;
 
   function refresh() {
     void overview.refetch();
@@ -92,7 +105,6 @@ export default function Dashboard() {
       ...current,
       status: current.status === status ? "" : status,
       due: "",
-      page: 1,
     }));
   }
 
@@ -101,7 +113,6 @@ export default function Dashboard() {
       ...current,
       due: current.due === "overdue" ? "" : "overdue",
       status: "",
-      page: 1,
     }));
   }
 
@@ -120,9 +131,87 @@ export default function Dashboard() {
         }
       />
 
+      {/* Tiles, scope and filters stay put; only the task list scrolls. */}
       <Body
         refreshing={overview.isFetching && !overview.isLoading}
         onRefresh={refresh}
+        onEndReached={
+          tasks.hasNextPage ? () => void tasks.fetchNextPage() : undefined
+        }
+        sticky={
+          showControls ? (
+            <>
+              {!counts ? (
+                <StatStripSkeleton />
+              ) : (
+                /* One scrolling row of compact chips rather than a 2×2 grid of
+                   tiles, so the list starts near the top of the viewport — the
+                   same trade the web board makes on phones. */
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.stripOuter}
+                  contentContainerStyle={styles.strip}
+                >
+                  <StatTile
+                    compact
+                    label="Pending"
+                    value={counts.pending}
+                    icon="ellipse-outline"
+                    tint={statusMeta.TODO}
+                    active={filters.status === "TODO"}
+                    onPress={() => toggleStatus("TODO")}
+                  />
+                  <StatTile
+                    compact
+                    label="In progress"
+                    value={counts.inProgress}
+                    icon="play-circle-outline"
+                    tint={statusMeta.IN_PROGRESS}
+                    active={filters.status === "IN_PROGRESS"}
+                    onPress={() => toggleStatus("IN_PROGRESS")}
+                  />
+                  <StatTile
+                    compact
+                    label="Completed"
+                    value={counts.completed}
+                    icon="checkmark-circle-outline"
+                    tint={statusMeta.COMPLETED}
+                    active={filters.status === "COMPLETED"}
+                    onPress={() => toggleStatus("COMPLETED")}
+                  />
+                  <StatTile
+                    compact
+                    label="Overdue"
+                    value={counts.overdue}
+                    icon="alert-circle-outline"
+                    tint={priorityMeta.URGENT}
+                    active={filters.due === "overdue"}
+                    onPress={toggleOverdue}
+                  />
+                </ScrollView>
+              )}
+
+              <SegmentedControl<Scope>
+                segments={[
+                  { value: "assigned-to-me", label: "To me" },
+                  { value: "assigned-by-me", label: "By me" },
+                  { value: "all", label: "All" },
+                ]}
+                value={scope}
+                onChange={setScope}
+              />
+
+              {/* Heading and controls share one row. */}
+              <TaskFilterBar
+                filters={filters}
+                onChange={setFilters}
+                title="Tasks"
+                count={total}
+              />
+            </>
+          ) : undefined
+        }
       >
         {overview.isLoading ? (
           <>
@@ -150,106 +239,35 @@ export default function Dashboard() {
             }
           />
         ) : (
-          <>
-            {!counts ? (
-              <StatStripSkeleton />
+          <View style={styles.section}>
+            {tasks.isLoading ? (
+              <TaskListSkeleton count={4} />
+            ) : tasks.isError && list.length === 0 ? (
+              // A later page failing keeps the pages already loaded on screen;
+              // the footer offers the retry rather than the list vanishing.
+              <ErrorNote message={toApiError(tasks.error).message} />
+            ) : list.length === 0 ? (
+              <EmptyState
+                icon="checkmark-done-outline"
+                title="Nothing here"
+                body="No tasks match this view. Try a different scope or clear your filters."
+              />
             ) : (
-              /* One scrolling row of compact chips rather than a 2×2 grid of
-                 tiles, so the list starts near the top of the viewport — the
-                 same trade the web board makes on phones. */
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.stripOuter}
-                contentContainerStyle={styles.strip}
-              >
-                <StatTile
-                  compact
-                  label="Pending"
-                  value={counts.pending}
-                  icon="ellipse-outline"
-                  tint={statusMeta.TODO}
-                  active={filters.status === "TODO"}
-                  onPress={() => toggleStatus("TODO")}
+              <>
+                <TaskList tasks={list} showActions />
+
+                <InfiniteFooter
+                  loading={tasks.isFetchingNextPage}
+                  hasMore={tasks.hasNextPage}
+                  count={list.length}
+                  total={total}
+                  onRetry={
+                    tasks.isError ? () => void tasks.fetchNextPage() : undefined
+                  }
                 />
-                <StatTile
-                  compact
-                  label="In progress"
-                  value={counts.inProgress}
-                  icon="play-circle-outline"
-                  tint={statusMeta.IN_PROGRESS}
-                  active={filters.status === "IN_PROGRESS"}
-                  onPress={() => toggleStatus("IN_PROGRESS")}
-                />
-                <StatTile
-                  compact
-                  label="Completed"
-                  value={counts.completed}
-                  icon="checkmark-circle-outline"
-                  tint={statusMeta.COMPLETED}
-                  active={filters.status === "COMPLETED"}
-                  onPress={() => toggleStatus("COMPLETED")}
-                />
-                <StatTile
-                  compact
-                  label="Overdue"
-                  value={counts.overdue}
-                  icon="alert-circle-outline"
-                  tint={priorityMeta.URGENT}
-                  active={filters.due === "overdue"}
-                  onPress={toggleOverdue}
-                />
-              </ScrollView>
+              </>
             )}
-
-            <View style={styles.section}>
-              <SegmentedControl<Scope>
-                segments={[
-                  { value: "assigned-to-me", label: "To me" },
-                  { value: "assigned-by-me", label: "By me" },
-                  { value: "all", label: "All" },
-                ]}
-                value={scope}
-                onChange={(next) => {
-                  setScope(next);
-                  setFilters((current) => ({ ...current, page: 1 }));
-                }}
-              />
-
-              {/* Heading and controls share one row. */}
-              <TaskFilterBar
-                filters={filters}
-                onChange={setFilters}
-                title="Tasks"
-                count={tasks.data?.total}
-              />
-
-              {tasks.isLoading ? (
-                <TaskListSkeleton count={4} />
-              ) : tasks.isError ? (
-                <ErrorNote message={toApiError(tasks.error).message} />
-              ) : list.length === 0 ? (
-                <EmptyState
-                  icon="checkmark-done-outline"
-                  title="Nothing here"
-                  body="No tasks match this view. Try a different scope or clear your filters."
-                />
-              ) : (
-                <>
-                  <TaskList tasks={list} showActions />
-
-                  <Pagination
-                    page={tasks.data?.page ?? 1}
-                    totalPages={tasks.data?.totalPages ?? 1}
-                    total={tasks.data?.total ?? 0}
-                    onChange={(page) =>
-                      setFilters((current) => ({ ...current, page }))
-                    }
-                  />
-                </>
-              )}
-            </View>
-          </>
+          </View>
         )}
       </Body>
 

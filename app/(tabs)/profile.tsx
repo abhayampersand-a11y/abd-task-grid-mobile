@@ -52,7 +52,7 @@ export default function Profile() {
     if (!user) return;
     setFullName(user.fullName);
     setJobTitle(user.jobTitle ?? "");
-    setMobile(user.mobile);
+    setMobile(user.mobile ?? "");
     setBio(user.bio ?? "");
   }, [user]);
 
@@ -146,29 +146,34 @@ export default function Profile() {
     <Screen>
       <BrandBar title="Profile" />
 
-      <Body>
-        <Card style={styles.identity}>
-          <Avatar user={user} size={64} />
-          <View style={styles.identityText}>
-            <Text style={styles.name}>{user.fullName}</Text>
-            <Text style={styles.email}>{user.email}</Text>
-            <Text style={styles.since}>
-              {user.role === "ADMIN" ? "Administrator" : "Member"} · joined{" "}
-              {formatDate(user.createdAt)}
-            </Text>
-          </View>
-        </Card>
+      {/* Identity and the section switcher stay put; the form scrolls. */}
+      <Body
+        sticky={
+          <>
+            <Card style={styles.identity}>
+              <Avatar user={user} size={64} />
+              <View style={styles.identityText}>
+                <Text style={styles.name}>{user.fullName}</Text>
+                <Text style={styles.email}>{user.email}</Text>
+                <Text style={styles.since}>
+                  {user.role === "ADMIN" ? "Administrator" : "Member"} · joined{" "}
+                  {formatDate(user.createdAt)}
+                </Text>
+              </View>
+            </Card>
 
-        <SegmentedControl<Section>
-          segments={[
-            { value: "details", label: "Details" },
-            { value: "security", label: "Security" },
-            { value: "appearance", label: "Theme" },
-          ]}
-          value={section}
-          onChange={setSection}
-        />
-
+            <SegmentedControl<Section>
+              segments={[
+                { value: "details", label: "Details" },
+                { value: "security", label: "Security" },
+                { value: "appearance", label: "Theme" },
+              ]}
+              value={section}
+              onChange={setSection}
+            />
+          </>
+        }
+      >
         {section === "appearance" ? (
           <Card style={styles.form}>
             <AppearanceSection />
@@ -200,8 +205,14 @@ export default function Profile() {
               label="Mobile"
               value={mobile}
               onChangeText={setMobile}
+              placeholder="+1 555 019 2837"
               keyboardType="phone-pad"
               autoComplete="tel"
+              hint={
+                user?.mobile
+                  ? undefined
+                  : "Optional — social sign-in does not provide one."
+              }
               error={profileErrors.mobile}
             />
             <TextField
@@ -228,14 +239,23 @@ export default function Profile() {
               <Text style={styles.success}>{passwordMessage}</Text>
             ) : null}
 
-            <TextField
-              label="Current password"
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-              secure
-              autoComplete="current-password"
-              error={passwordErrors.currentPassword}
-            />
+            {/* A social-only account has no password to confirm — it is
+                setting its first one. */}
+            {user?.hasPassword ? (
+              <TextField
+                label="Current password"
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                secure
+                autoComplete="current-password"
+                error={passwordErrors.currentPassword}
+              />
+            ) : (
+              <Text style={styles.passwordIntro}>
+                You signed up with a social provider. Adding a password lets you
+                sign in with your email as well.
+              </Text>
+            )}
             <TextField
               label="New password"
               value={newPassword}
@@ -255,7 +275,7 @@ export default function Profile() {
             />
 
             <Button
-              label="Change password"
+              label={user?.hasPassword ? "Change password" : "Set password"}
               onPress={savePassword}
               loading={savingPassword}
               fullWidth
@@ -283,4 +303,5 @@ const useStyles = makeStyles(({ colors }) => ({
   since: { fontSize: 12, color: colors.inkFaint },
   form: { gap: spacing.lg },
   success: { fontSize: 13, fontWeight: "600", color: colors.emerald700 },
+  passwordIntro: { fontSize: 13, lineHeight: 19, color: colors.inkMuted },
 }));

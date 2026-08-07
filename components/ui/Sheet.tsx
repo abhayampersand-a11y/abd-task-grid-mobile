@@ -1,16 +1,12 @@
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { Modal, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { HIT_SLOP, radius, spacing } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
+import {
+  KeyboardAvoider,
+  KeyboardAwareScrollView,
+} from "@/components/ui/KeyboardAvoider";
 
 interface Props {
   visible: boolean;
@@ -45,10 +41,10 @@ export function Sheet({ visible, onClose, title, children, footer }: Props) {
           accessibilityLabel="Close"
         />
 
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.dock}
-        >
+        {/* The dock spans the whole modal so the sheet's `maxHeight` has a
+            definite basis to shrink against once the keyboard takes its space —
+            `box-none` keeps the backdrop tappable underneath it. */}
+        <KeyboardAvoider style={styles.dock} pointerEvents="box-none">
           <View style={styles.sheet}>
             <View style={styles.handle} />
 
@@ -66,15 +62,14 @@ export function Sheet({ visible, onClose, title, children, footer }: Props) {
               </Pressable>
             </View>
 
-            <ScrollView
+            <KeyboardAwareScrollView
               style={styles.body}
               contentContainerStyle={styles.bodyContent}
-              keyboardShouldPersistTaps="handled"
               // Stops a scroll gesture inside the sheet dragging the page behind it.
               overScrollMode="never"
             >
               {children}
-            </ScrollView>
+            </KeyboardAwareScrollView>
 
             {footer ? (
               <View
@@ -89,7 +84,7 @@ export function Sheet({ visible, onClose, title, children, footer }: Props) {
               <View style={{ height: insets.bottom }} />
             )}
           </View>
-        </KeyboardAvoidingView>
+        </KeyboardAvoider>
       </View>
     </Modal>
   );
@@ -108,17 +103,19 @@ const useStyles = makeStyles(({ colors }) => ({
   dock: { justifyContent: "flex-end" },
   sheet: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
+    borderTopLeftRadius: radius.lg + 6,
+    borderTopRightRadius: radius.lg + 6,
+    borderTopWidth: 1,
+    borderColor: colors.line,
     maxHeight: "88%",
   },
   handle: {
-    width: 40,
+    width: 38,
     height: 4,
-    borderRadius: 2,
+    borderRadius: radius.pill,
     backgroundColor: colors.lineStrong,
     alignSelf: "center",
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
   },
   header: {
     flexDirection: "row",
@@ -129,8 +126,17 @@ const useStyles = makeStyles(({ colors }) => ({
     paddingTop: spacing.md,
     paddingBottom: spacing.md,
   },
-  title: { flex: 1, fontSize: 17, fontWeight: "700", color: colors.ink },
-  body: { flexGrow: 0 },
+  title: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: -0.4,
+    color: colors.ink,
+  },
+  // `flexShrink` is 0 by default in RN, which would let a tall form push the
+  // header and footer off the sheet once the keyboard claims half the screen.
+  // Shrinking the scroller instead keeps both pinned and the fields reachable.
+  body: { flexGrow: 0, flexShrink: 1 },
   bodyContent: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,

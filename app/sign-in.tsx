@@ -1,14 +1,6 @@
 import { useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  Switch,
-  Text,
-  View,
-} from "react-native";
-import { useRouter } from "expo-router";
+import { Pressable, Switch, Text, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { radius, spacing } from "@/lib/theme";
@@ -21,6 +13,11 @@ import { toApiError, useSignInMutation } from "@/store/api";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { ErrorNote } from "@/components/ui/primitives";
+import { SocialAuthButtons } from "@/components/app/SocialAuthButtons";
+import {
+  KeyboardAvoider,
+  KeyboardAwareScrollView,
+} from "@/components/ui/KeyboardAvoider";
 
 export default function SignIn() {
   const router = useRouter();
@@ -34,7 +31,10 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
-  const [formError, setFormError] = useState<string | null>(null);
+  // A social sign-in that failed after the app was backgrounded comes back
+  // through `/oauth-callback`, which forwards the reason here.
+  const { error: routedError } = useLocalSearchParams<{ error?: string }>();
+  const [formError, setFormError] = useState<string | null>(routedError ?? null);
 
   async function submit() {
     setFormError(null);
@@ -59,16 +59,12 @@ export default function SignIn() {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.root}
-    >
-      <ScrollView
+    <KeyboardAvoider style={styles.root}>
+      <KeyboardAwareScrollView
         contentContainerStyle={[
           styles.content,
           { paddingTop: insets.top + spacing["3xl"] },
         ]}
-        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.brand}>
           <View style={styles.mark}>
@@ -119,6 +115,12 @@ export default function SignIn() {
           fullWidth
         />
 
+        <SocialAuthButtons
+          disabled={isLoading}
+          onToken={signInWithToken}
+          onError={setFormError}
+        />
+
         <Pressable
           onPress={() => router.push("/sign-up")}
           style={styles.switchLink}
@@ -132,8 +134,8 @@ export default function SignIn() {
         <Text style={styles.host} numberOfLines={1}>
           Server: {API_BASE_URL}
         </Text>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </KeyboardAvoider>
   );
 }
 
@@ -146,16 +148,21 @@ const useStyles = makeStyles(({ colors }) => ({
   },
   brand: { gap: spacing.sm, marginBottom: spacing.sm },
   mark: {
-    width: 52,
-    height: 52,
-    borderRadius: radius.card,
+    width: 56,
+    height: 56,
+    borderRadius: radius.pill,
     backgroundColor: colors.brandSolid,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacing.sm,
   },
-  title: { fontSize: 26, fontWeight: "700", color: colors.ink },
-  subtitle: { fontSize: 15, color: colors.inkMuted, lineHeight: 21 },
+  title: {
+    fontSize: 32,
+    fontWeight: "800",
+    letterSpacing: -0.9,
+    color: colors.ink,
+  },
+  subtitle: { fontSize: 15, color: colors.inkMuted, lineHeight: 22 },
   rememberRow: {
     flexDirection: "row",
     alignItems: "center",

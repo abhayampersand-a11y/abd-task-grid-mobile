@@ -2,6 +2,7 @@
   "expo": {
     "name": "TaskFlow Pro",
     "slug": "taskflow-pro",
+    "owner": "abhaydesai",
     "scheme": "taskflow",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -27,10 +28,15 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      "expo-web-browser"
     ],
     "extra": {
-      "apiBaseUrl": "http://192.168.1.10:3000"
+      "apiBaseUrl": "https://abd-task-grid.vercel.app",
+      "router": {},
+      "eas": {
+        "projectId": "23c6292b-54c5-4b74-9662-606f0ae5bbfb"
+      }
     }
   }
 }

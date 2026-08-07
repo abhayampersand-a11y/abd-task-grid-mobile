@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { API_URL } from "@/lib/config";
 import { getTokenSync } from "@/lib/token";
+import type { OAuthProviderId } from "@/lib/oauth";
 import type {
   AdminUserRow,
   CommentDto,
@@ -84,6 +85,13 @@ export interface TaskListResponse {
   totalPages: number;
 }
 
+/**
+ * What an infinite list is keyed by: everything except the page, which the
+ * endpoint supplies itself. Leaving `page` in would make every scroll a new
+ * cache entry and throw away the pages already loaded.
+ */
+export type TaskFeedFilters = Omit<TaskFilters, "page">;
+
 export interface TaskStats {
   total: number;
   pending: number;
@@ -98,6 +106,8 @@ export interface AdminUserFilters {
   sort?: string;
   page?: number;
 }
+
+export type AdminUserFeedFilters = Omit<AdminUserFilters, "page">;
 
 type AdminUsersResponse = Paginated<AdminUserRow> & {
   totals: { all: number; active: number; disabled: number; pending: number };
@@ -170,6 +180,14 @@ export const api = createApi({
     signOut: build.mutation<{ success: boolean }, void>({
       query: () => ({ url: "/auth/sign-out", method: "POST" }),
       invalidatesTags: ["Session"],
+    }),
+    /**
+     * Which social providers the server has credentials for. Asking beats
+     * hardcoding three buttons and letting the user find the missing
+     * configuration halfway through a browser round trip.
+     */
+    oauthProviders: build.query<{ providers: OAuthProviderId[] }, void>({
+      query: () => "/auth/oauth/providers",
     }),
 
     // ── Dashboard ─────────────────────────────────────────────────────────
@@ -296,6 +314,27 @@ export const api = createApi({
       query: (filters) => ({ url: "/tasks", params: clean({ ...filters }) }),
       providesTags: ["TaskList"],
     }),
+    /**
+     * The list every task screen actually reads: pages accumulate as the user
+     * scrolls rather than replacing each other. `getNextPageParam` returning
+     * `undefined` on the last page is what turns `hasNextPage` off, so the
+     * footer knows when to stop asking.
+     *
+     * A "TaskList" invalidation refetches every page that has been loaded, so
+     * creating or editing a task still lands in a long list correctly.
+     */
+    taskFeed: build.infiniteQuery<TaskListResponse, TaskFeedFilters, number>({
+      infiniteQueryOptions: {
+        initialPageParam: 1,
+        getNextPageParam: (lastPage) =>
+          lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
+      },
+      query: ({ queryArg, pageParam }) => ({
+        url: "/tasks",
+        params: clean({ ...queryArg, page: pageParam }),
+      }),
+      providesTags: ["TaskList"],
+    }),
     taskStats: build.query<TaskStats, TaskFilters>({
       query: (filters) => ({
         url: "/tasks/stats",
@@ -403,6 +442,22 @@ export const api = createApi({
       }),
       providesTags: ["AdminUsers"],
     }),
+    adminUserFeed: build.infiniteQuery<
+      AdminUsersResponse,
+      AdminUserFeedFilters,
+      number
+    >({
+      infiniteQueryOptions: {
+        initialPageParam: 1,
+        getNextPageParam: (lastPage) =>
+          lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
+      },
+      query: ({ queryArg, pageParam }) => ({
+        url: "/admin/users",
+        params: clean({ ...queryArg, page: pageParam }),
+      }),
+      providesTags: ["AdminUsers"],
+    }),
     adminStats: build.query<AdminStats, void>({
       query: () => "/admin/stats",
       providesTags: ["AdminUsers"],
@@ -430,6 +485,7 @@ export const {
   useSignUpMutation,
   useSignInMutation,
   useSignOutMutation,
+  useOauthProvidersQuery,
   useDashboardQuery,
   useGroupsQuery,
   useGroupQuery,
@@ -445,6 +501,7 @@ export const {
   useRespondToInvitationMutation,
   useCancelInvitationMutation,
   useTasksQuery,
+  useTaskFeedInfiniteQuery,
   useTaskStatsQuery,
   useTaskQuery,
   useCreateTaskMutation,
@@ -460,6 +517,7 @@ export const {
   useUpdateProfileMutation,
   useChangePasswordMutation,
   useAdminUsersQuery,
+  useAdminUserFeedInfiniteQuery,
   useAdminStatsQuery,
   useSetUserStatusMutation,
   useDeleteUserMutation,

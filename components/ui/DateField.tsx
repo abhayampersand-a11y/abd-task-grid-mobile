@@ -80,18 +80,18 @@ export function DateField({ label, value, onChange }: Props) {
 }
 
 const useStyles = makeStyles(({ colors }) => ({
-  wrap: { gap: 6 },
-  label: { fontSize: 13, fontWeight: "600", color: colors.inkSoft },
+  wrap: { gap: 7 },
+  label: { fontSize: 13, fontWeight: "600", color: colors.inkMuted },
   field: {
-    minHeight: 48,
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.card,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceMuted,
   },
   trigger: {
     flex: 1,

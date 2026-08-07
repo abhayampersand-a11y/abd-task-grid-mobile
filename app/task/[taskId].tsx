@@ -1,8 +1,6 @@
 import { useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -44,6 +42,10 @@ import {
 import { TaskDetailSkeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { Sheet } from "@/components/ui/Sheet";
+import {
+  KeyboardAvoider,
+  KeyboardAwareScrollView,
+} from "@/components/ui/KeyboardAvoider";
 
 export default function TaskDetail() {
   const { taskId } = useLocalSearchParams<{ taskId: string }>();
@@ -54,6 +56,7 @@ export default function TaskDetail() {
 
   const [comment, setComment] = useState("");
   const [actionSheet, setActionSheet] = useState(false);
+  const [statusSheet, setStatusSheet] = useState(false);
 
   const { data, isLoading, isError, error, refetch, isFetching } = useTaskQuery(
     taskId,
@@ -68,6 +71,7 @@ export default function TaskDetail() {
   const canEdit = Boolean(task?.viewerIsAssignee || task?.viewerIsCreator);
 
   async function setStatus(status: TaskStatus) {
+    setStatusSheet(false);
     if (!task || status === task.status) return;
     try {
       await updateTask({ taskId: task.id, status }).unwrap();
@@ -128,6 +132,7 @@ export default function TaskDetail() {
 
   const overdue = isOverdue(task.dueDate, task.status);
   const tint = groupColor(task.group.colorKey);
+  const currentStatus = statusMeta[task.status];
 
   return (
     <Screen>
@@ -145,49 +150,41 @@ export default function TaskDetail() {
         }
       />
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={insets.top + 44}
-        style={styles.flex}
-      >
-        <ScrollView
-          contentContainerStyle={styles.pad}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Status is the one control worth a full-width row on a phone. */}
+      {/* No offset: `DetailBar` is drawn inside this screen, not by a navigator
+          header, so the avoider's own frame already starts below it. */}
+      <KeyboardAvoider style={styles.flex}>
+        <KeyboardAwareScrollView contentContainerStyle={styles.pad}>
+          {/* Status is the one control worth a full-width row on a phone. Five
+              chips wrapped to two lines cost more space than they earn, so the
+              current value sits in a field that opens a picker sheet. */}
           <View style={styles.statusBlock}>
             <Text style={styles.label}>Status</Text>
-            <View style={styles.statusRow}>
-              {STATUS_ORDER.map((status) => {
-                const meta = statusMeta[status];
-                const active = status === task.status;
-                return (
-                  <Pressable
-                    key={status}
-                    onPress={() => setStatus(status)}
-                    disabled={!canEdit || updating}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: active, disabled: !canEdit }}
-                    style={[
-                      styles.statusChip,
-                      { backgroundColor: active ? meta.bg : colors.surface },
-                      active && { borderColor: meta.dot },
-                      !canEdit && styles.statusDisabled,
-                    ]}
-                  >
-                    <View style={[styles.statusDot, { backgroundColor: meta.dot }]} />
-                    <Text
-                      style={[
-                        styles.statusText,
-                        active && { color: meta.fg, fontWeight: "700" },
-                      ]}
-                    >
-                      {meta.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            <Pressable
+              onPress={() => setStatusSheet(true)}
+              disabled={!canEdit || updating}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !canEdit, expanded: statusSheet }}
+              accessibilityLabel={`Status. ${currentStatus.label}`}
+              style={[
+                styles.statusField,
+                { backgroundColor: currentStatus.bg, borderColor: currentStatus.dot },
+                !canEdit && styles.statusDisabled,
+              ]}
+            >
+              <View
+                style={[styles.statusDot, { backgroundColor: currentStatus.dot }]}
+              />
+              <Text style={[styles.statusValue, { color: currentStatus.fg }]}>
+                {currentStatus.label}
+              </Text>
+              {canEdit ? (
+                <Ionicons
+                  name="chevron-down"
+                  size={17}
+                  color={currentStatus.fg}
+                />
+              ) : null}
+            </Pressable>
           </View>
 
           <Card style={styles.metaCard}>
@@ -381,7 +378,7 @@ export default function TaskDetail() {
           {/* A refetch, not a first load — the content is already on screen, so
               this stays a spinner rather than replacing it with a skeleton. */}
           {isFetching ? <Loading /> : null}
-        </ScrollView>
+        </KeyboardAwareScrollView>
 
         {/* Composer pinned above the home indicator so it is always reachable. */}
         <View style={[styles.composer, { paddingBottom: insets.bottom + 10 }]}>
@@ -408,7 +405,46 @@ export default function TaskDetail() {
             <Ionicons name="arrow-up" size={20} color={colors.onBrand} />
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardAvoider>
+
+      <Sheet
+        visible={statusSheet}
+        onClose={() => setStatusSheet(false)}
+        title="Status"
+      >
+        <View style={styles.statusOptions}>
+          {STATUS_ORDER.map((status) => {
+            const meta = statusMeta[status];
+            const active = status === task.status;
+            return (
+              <Pressable
+                key={status}
+                onPress={() => void setStatus(status)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: active }}
+                style={({ pressed }) => [
+                  styles.statusOption,
+                  active && { backgroundColor: meta.bg },
+                  pressed && !active && styles.statusOptionPressed,
+                ]}
+              >
+                <View style={[styles.statusDot, { backgroundColor: meta.dot }]} />
+                <Text
+                  style={[
+                    styles.statusOptionText,
+                    active && { color: meta.fg, fontWeight: "700" },
+                  ]}
+                >
+                  {meta.label}
+                </Text>
+                {active ? (
+                  <Ionicons name="checkmark" size={19} color={meta.fg} />
+                ) : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      </Sheet>
 
       <Sheet
         visible={actionSheet}
@@ -442,20 +478,29 @@ const useStyles = makeStyles(({ colors }) => ({
   pad: { padding: spacing.lg, gap: spacing.lg, paddingBottom: spacing["3xl"] },
   label: { fontSize: 13, fontWeight: "600", color: colors.inkSoft },
   statusBlock: { gap: spacing.sm },
-  statusRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
-  statusChip: {
+  statusField: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    minHeight: 38,
-    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+    minHeight: 52,
+    paddingHorizontal: spacing.lg,
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: colors.line,
   },
   statusDisabled: { opacity: 0.6 },
-  statusDot: { width: 7, height: 7, borderRadius: 4 },
-  statusText: { fontSize: 13, fontWeight: "600", color: colors.inkMuted },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  statusValue: { flex: 1, fontSize: 16, fontWeight: "700" },
+  statusOptions: { gap: 4 },
+  statusOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    minHeight: 50,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+  },
+  statusOptionPressed: { backgroundColor: colors.surfaceMuted },
+  statusOptionText: { flex: 1, fontSize: 15, color: colors.ink },
   metaCard: { gap: spacing.md },
   metaRow: {
     flexDirection: "row",
@@ -522,18 +567,18 @@ const useStyles = makeStyles(({ colors }) => ({
     minHeight: MIN_TAP,
     fontSize: 16,
     color: colors.ink,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.md,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.canvas,
+    backgroundColor: colors.surfaceMuted,
   },
   send: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
     backgroundColor: colors.brandSolid,
     alignItems: "center",
     justifyContent: "center",

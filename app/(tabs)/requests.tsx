@@ -150,9 +150,9 @@ const useStyles = makeStyles(({ colors, shadow }) => ({
   },
   head: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   badge: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
+    width: 42,
+    height: 42,
+    borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
   },

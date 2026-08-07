@@ -6,9 +6,12 @@ import { StatusBar } from "expo-status-bar";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { store } from "@/store";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { BlurTargetProvider } from "@/lib/blur-target";
 import { makeStyles, ThemeProvider, useTheme } from "@/lib/theme-context";
 
-const AUTH_ROUTES = ["sign-in", "sign-up"];
+// `oauth-callback` counts as an auth screen so the gate leaves it alone long
+// enough to read the token off the deep link.
+const AUTH_ROUTES = ["sign-in", "sign-up", "oauth-callback"];
 
 /**
  * Mirrors `proxy.ts` on the web: signed-out users land on sign-in, signed-in
@@ -57,19 +60,24 @@ function ThemedApp() {
       {/* Light content on a dark bar, and vice versa. */}
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
       <AuthGate>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.canvas },
-          }}
-        >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="sign-in" />
-          <Stack.Screen name="sign-up" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="group/[groupId]" />
-          <Stack.Screen name="task/[taskId]" />
-        </Stack>
+        {/* Everything routed sits inside the blur target, because the floating
+            tab bar blurs whichever screen happens to be under it. */}
+        <BlurTargetProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.canvas },
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="sign-in" />
+            <Stack.Screen name="sign-up" />
+            <Stack.Screen name="oauth-callback" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="group/[groupId]" />
+            <Stack.Screen name="task/[taskId]" />
+          </Stack>
+        </BlurTargetProvider>
       </AuthGate>
     </>
   );

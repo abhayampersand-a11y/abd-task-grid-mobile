@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { MIN_TAP, radius, spacing } from "@/lib/theme";
+import { radius, spacing } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
 import { Sheet } from "./Sheet";
 
@@ -90,19 +90,19 @@ export function Select<T extends string>({
 }
 
 const useStyles = makeStyles(({ colors }) => ({
-  wrap: { gap: 6 },
-  label: { fontSize: 13, fontWeight: "600", color: colors.inkSoft },
+  wrap: { gap: 7 },
+  label: { fontSize: 13, fontWeight: "600", color: colors.inkMuted },
   field: {
-    minHeight: 48,
+    minHeight: 52,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.card,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceMuted,
   },
   fieldError: { borderColor: colors.rose500 },
   value: { flex: 1, fontSize: 16, color: colors.ink },
@@ -110,15 +110,15 @@ const useStyles = makeStyles(({ colors }) => ({
   error: { fontSize: 12, color: colors.rose700 },
   options: { gap: 4 },
   option: {
-    minHeight: MIN_TAP,
+    minHeight: 50,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
   },
   optionActive: { backgroundColor: colors.brand50 },
-  optionPressed: { backgroundColor: colors.canvas },
+  optionPressed: { backgroundColor: colors.surfaceMuted },
   optionText: { fontSize: 15, color: colors.ink },
   optionTextActive: { fontWeight: "600", color: colors.brandText },
 }));

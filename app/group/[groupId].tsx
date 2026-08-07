@@ -13,8 +13,8 @@ import {
   useGroupQuery,
   useInviteGroupMembersMutation,
   useRemoveGroupMemberMutation,
-  useTasksQuery,
-  type TaskFilters,
+  useTaskFeedInfiniteQuery,
+  type TaskFeedFilters,
 } from "@/store/api";
 import { Body, DetailBar, Fab, IconAction, Screen } from "@/components/ui/Screen";
 import {
@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { Sheet } from "@/components/ui/Sheet";
-import { Pagination } from "@/components/ui/Pagination";
+import { InfiniteFooter } from "@/components/ui/InfiniteFooter";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { TaskList } from "@/components/app/TaskList";
 import { TaskFilterBar } from "@/components/app/TaskFilterBar";
@@ -48,14 +48,14 @@ export default function GroupDetail() {
   const styles = useStyles();
 
   const [tab, setTab] = useState<Tab>("tasks");
-  const [filters, setFilters] = useState<TaskFilters>({ page: 1, pageSize: 20 });
+  const [filters, setFilters] = useState<TaskFeedFilters>({ pageSize: 20 });
   const [taskSheet, setTaskSheet] = useState(false);
   const [memberSheet, setMemberSheet] = useState(false);
   const [actionSheet, setActionSheet] = useState(false);
   const [invited, setInvited] = useState<UserSummary[]>([]);
 
   const group = useGroupQuery(groupId, { skip: !groupId });
-  const tasks = useTasksQuery(
+  const tasks = useTaskFeedInfiniteQuery(
     { ...filters, groupId, scope: "all" },
     { skip: !groupId },
   );
@@ -170,7 +170,9 @@ export default function GroupDetail() {
     );
   }
 
-  const list = tasks.data?.tasks ?? [];
+  const pages = tasks.data?.pages;
+  const list = pages?.flatMap((page) => page.tasks) ?? [];
+  const total = pages?.[pages.length - 1]?.total;
 
   return (
     <Screen>
@@ -194,6 +196,13 @@ export default function GroupDetail() {
           void group.refetch();
           void tasks.refetch();
         }}
+        // The members tab is a complete roster in one response — only the task
+        // tab has pages left to ask for.
+        onEndReached={
+          tab === "tasks" && tasks.hasNextPage
+            ? () => void tasks.fetchNextPage()
+            : undefined
+        }
       >
         <Card style={styles.summary}>
           <View style={styles.summaryHead}>
@@ -266,6 +275,10 @@ export default function GroupDetail() {
 
             {tasks.isLoading ? (
               <TaskListSkeleton count={3} />
+            ) : tasks.isError && list.length === 0 ? (
+              // A later page failing keeps the pages already loaded on screen;
+              // the footer offers the retry rather than the list vanishing.
+              <ErrorNote message={toApiError(tasks.error).message} />
             ) : list.length === 0 ? (
               <EmptyState
                 icon="clipboard-outline"
@@ -284,11 +297,14 @@ export default function GroupDetail() {
               <>
                 <TaskList tasks={list} showActions />
 
-                <Pagination
-                  page={tasks.data?.page ?? 1}
-                  totalPages={tasks.data?.totalPages ?? 1}
-                  total={tasks.data?.total ?? 0}
-                  onChange={(page) => setFilters({ ...filters, page })}
+                <InfiniteFooter
+                  loading={tasks.isFetchingNextPage}
+                  hasMore={tasks.hasNextPage}
+                  count={list.length}
+                  total={total}
+                  onRetry={
+                    tasks.isError ? () => void tasks.fetchNextPage() : undefined
+                  }
                 />
               </>
             )}
@@ -458,9 +474,9 @@ const useStyles = makeStyles(({ colors }) => ({
   summary: { gap: spacing.md },
   summaryHead: { flexDirection: "row", alignItems: "center", gap: spacing.md },
   summaryBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.md,
+    width: 46,
+    height: 46,
+    borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
   },

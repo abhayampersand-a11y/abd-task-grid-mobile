@@ -29,16 +29,18 @@ const OPTIONS: {
  * no SVG renderer in this app and one option is not worth a dependency.
  */
 function Preview({ dark }: { dark: boolean }) {
-  const canvas = dark ? "#0c0e15" : "#f6f7f9";
-  const surface = dark ? "#151823" : "#ffffff";
-  const line = dark ? "#262b3a" : "#e6e8ee";
-  const bar = dark ? "#353b4e" : "#d5d8e2";
+  // Literals, not tokens: this draws the theme the option *offers*, which is
+  // the one the app is not currently in. Kept in step with `lib/theme.ts`.
+  const canvas = dark ? "#0a0a0d" : "#f3f3f6";
+  const surface = dark ? "#16161b" : "#ffffff";
+  const line = dark ? "#26262e" : "#eaeaf0";
+  const bar = dark ? "#35353f" : "#dadae3";
 
   const panel = {
     backgroundColor: surface,
     borderColor: line,
     borderWidth: 1,
-    borderRadius: 4,
+    borderRadius: 5,
   };
 
   return (
@@ -46,7 +48,7 @@ function Preview({ dark }: { dark: boolean }) {
       style={{
         width: 108,
         height: 68,
-        borderRadius: 7,
+        borderRadius: 10,
         backgroundColor: canvas,
         padding: 6,
         flexDirection: "row",
@@ -55,7 +57,7 @@ function Preview({ dark }: { dark: boolean }) {
     >
       {/* Sidebar */}
       <View style={[panel, { width: 26, padding: 4, gap: 5 }]}>
-        <View style={{ height: 5, borderRadius: 3, backgroundColor: "#4f39f6" }} />
+        <View style={{ height: 5, borderRadius: 3, backgroundColor: "#7b61ff" }} />
         <View style={{ height: 3, width: 14, borderRadius: 2, backgroundColor: bar }} />
         <View style={{ height: 3, width: 11, borderRadius: 2, backgroundColor: bar }} />
         <View style={{ height: 3, width: 13, borderRadius: 2, backgroundColor: bar }} />
@@ -166,15 +168,15 @@ const useStyles = makeStyles(({ colors }) => ({
     alignItems: "center",
     gap: spacing.md,
     padding: spacing.md,
-    borderRadius: radius.md,
+    borderRadius: radius.card,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceMuted,
   },
-  optionActive: { borderColor: colors.brand200, backgroundColor: colors.brand50 },
+  optionActive: { borderColor: colors.brand500, backgroundColor: colors.brand50 },
   pressed: { opacity: 0.8 },
   preview: {
-    borderRadius: 8,
+    borderRadius: 11,
     borderWidth: 1,
     borderColor: colors.line,
     overflow: "hidden",
@@ -185,9 +187,9 @@ const useStyles = makeStyles(({ colors }) => ({
   optionLabelActive: { color: colors.brandText },
   optionHint: { fontSize: 12, color: colors.inkMuted },
   check: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: radius.pill,
     backgroundColor: colors.brandSolid,
     alignItems: "center",
     justifyContent: "center",
@@ -196,8 +198,8 @@ const useStyles = makeStyles(({ colors }) => ({
     fontSize: 12,
     color: colors.inkMuted,
     lineHeight: 17,
-    padding: spacing.md,
-    borderRadius: radius.md,
+    padding: spacing.lg,
+    borderRadius: radius.card,
     backgroundColor: colors.surfaceMuted,
   },
   noteStrong: { fontWeight: "700", color: colors.ink },

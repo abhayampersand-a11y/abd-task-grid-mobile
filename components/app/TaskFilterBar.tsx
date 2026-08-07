@@ -5,14 +5,15 @@ import { HIT_SLOP, MIN_TAP, radius, spacing } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
 import { PRIORITY_ORDER, STATUS_ORDER } from "@/lib/format";
 import type { UserSummary } from "@/lib/types";
-import { useDirectoryQuery, type TaskFilters } from "@/store/api";
+import { useDirectoryQuery, type TaskFeedFilters } from "@/store/api";
 import { Sheet } from "@/components/ui/Sheet";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { useKeyboardReveal } from "@/components/ui/KeyboardAvoider";
 
 interface Props {
-  filters: TaskFilters;
-  onChange: (next: TaskFilters) => void;
+  filters: TaskFeedFilters;
+  onChange: (next: TaskFeedFilters) => void;
   /**
    * Who can appear in the two people filters. A group screen passes its own
    * members; the dashboard leaves it out and falls back to the directory, which
@@ -70,6 +71,7 @@ export function TaskFilterBar({
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { colors, scheme, statusMeta, priorityMeta } = useTheme();
+  const reveal = useKeyboardReveal();
   const styles = useStyles();
 
   // Only fetched when the caller has no roster of its own to offer.
@@ -81,8 +83,10 @@ export function TaskFilterBar({
   const activeCount = FILTER_KEYS.filter((key) => filters[key]).length;
   const dirty = activeCount > 0 || Boolean(filters.q) || Boolean(filters.sort);
 
-  function set(patch: Partial<TaskFilters>) {
-    onChange({ ...filters, ...patch, page: 1 });
+  // No page to reset: the lists this drives are infinite, and a changed filter
+  // is a new cache key, which starts them back at page one by itself.
+  function set(patch: Partial<TaskFeedFilters>) {
+    onChange({ ...filters, ...patch });
   }
 
   function clearAll() {
@@ -95,7 +99,6 @@ export function TaskFilterBar({
       due: "",
       sort: "",
       q: "",
-      page: 1,
     });
   }
 
@@ -173,6 +176,7 @@ export function TaskFilterBar({
             autoFocus
             value={filters.q ?? ""}
             onChangeText={(value) => set({ q: value })}
+            onFocus={reveal}
             placeholder="Search tasks"
             placeholderTextColor={colors.inkFaint}
             keyboardAppearance={scheme}
@@ -272,19 +276,24 @@ export function TaskFilterBar({
 
 const useStyles = makeStyles(({ colors }) => ({
   wrap: { gap: spacing.sm },
-  row: { flexDirection: "row", alignItems: "center", gap: 6 },
-  title: { fontSize: 16, fontWeight: "700", color: colors.ink },
+  row: { flexDirection: "row", alignItems: "center", gap: 8 },
+  title: {
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+    color: colors.ink,
+  },
   count: { fontSize: 13, fontWeight: "600", color: colors.inkMuted },
   spacer: { flex: 1 },
   search: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceMuted,
   },
   searchInput: {
     flex: 1,
@@ -295,7 +304,7 @@ const useStyles = makeStyles(({ colors }) => ({
   iconButton: {
     width: MIN_TAP,
     height: MIN_TAP,
-    borderRadius: radius.md,
+    borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface,
@@ -303,7 +312,7 @@ const useStyles = makeStyles(({ colors }) => ({
     justifyContent: "center",
   },
   iconButtonActive: {
-    borderColor: colors.brand200,
+    borderColor: colors.brand500,
     backgroundColor: colors.brand50,
   },
   pressed: { opacity: 0.7 },

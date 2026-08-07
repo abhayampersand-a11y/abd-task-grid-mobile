@@ -21,3 +21,9 @@ Notes specific to this project:
 - Colour-dependent tables (`statusMeta`, `priorityMeta`, `groupColor`, `tintFor`)
   come from `useTheme()`, not from `lib/format.ts` directly — `format.ts` only
   exports the factories that build them.
+- **Social sign-in is brokered by the API, not by this app.** `lib/oauth.ts`
+  only opens `/api/auth/oauth/{provider}/start` in a `WebBrowser` auth session
+  and reads the session token off the `taskflow://oauth-callback` deep link —
+  there is no provider SDK and no client secret here. LinkedIn cannot work any
+  other way (it requires a secret on the token exchange and rejects PKCE). See
+  `../my-app/SOCIAL-AUTH.md` for the console setup and the Expo Go caveat.

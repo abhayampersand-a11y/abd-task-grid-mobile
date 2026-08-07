@@ -46,15 +46,21 @@ export interface UserSummary {
 }
 
 export interface CurrentUser extends UserSummary {
-  mobile: string;
+  /** Null on accounts created through a social provider. */
+  mobile: string | null;
   bio: string | null;
   role: Role;
   status: UserStatus;
   createdAt: string;
+  /**
+   * False for social-only accounts. The password form uses this to decide
+   * whether to ask for the current password or offer to set a first one.
+   */
+  hasPassword: boolean;
 }
 
 export interface AdminUserRow extends UserSummary {
-  mobile: string;
+  mobile: string | null;
   role: Role;
   status: UserStatus;
   createdAt: string;
