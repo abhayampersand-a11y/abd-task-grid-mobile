@@ -8,6 +8,7 @@ import {
 import {
   Keyboard,
   KeyboardAvoidingView,
+  Platform,
   ScrollView,
   TextInput,
   type NativeScrollEvent,
@@ -103,6 +104,12 @@ export function KeyboardAwareScrollView({
   const holdsFocus = useRef(false);
 
   const schedule = useCallback(() => {
+    // Nothing to do on web, and nothing to do it with: `react-native-web`'s
+    // `TextInput.State` carries only the deprecated `currentlyFocusedField`,
+    // and its `Keyboard` is a stub with no `metrics()`. Calling either throws.
+    // The browser scrolls a focused field into view by itself anyway.
+    if (Platform.OS === "web") return;
+
     if (timer.current) clearTimeout(timer.current);
 
     timer.current = setTimeout(() => {
