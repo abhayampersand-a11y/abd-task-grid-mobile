@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { Platform, Pressable, View } from "react-native";
 import { Tabs } from "expo-router";
 import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
@@ -29,18 +29,30 @@ const ITEM_PADDING = 5;
  * than a background colour on the bar, because a blur has to be a real view
  * with the content it samples behind it.
  *
- * Three things can go wrong and all three degrade to the same scrim: the target
- * is not attached yet, the device is an Android below SDK 31 (where
- * `dimezisBlurViewSdk31Plus` falls back to no blur rather than pay the
- * RenderScript cost), or the blur is simply not supported. In every case
- * `colors.glass` alone still reads as a translucent pill.
+ * Android is excluded on purpose, and must stay that way until the bar moves.
+ * The blur there is not a backdrop filter: `BlurView` redraws the nominated
+ * `blurTarget` subtree and blurs the result — and this bar lives *inside* that
+ * subtree, because `BlurTargetProvider` wraps the whole router in
+ * `app/_layout.tsx`. Blurring a tree that contains the blurring view is a cycle,
+ * so libhwui's `prepareTreeImpl`/`prepareListAndChildren` recurse until the
+ * RenderThread's stack overflows: a native SIGSEGV, past any JS error boundary,
+ * killing the app the moment the tabs mount. It only bites from SDK 31 up —
+ * below that `dimezisBlurViewSdk31Plus` falls back to no blur rather than pay
+ * the RenderScript cost, which is why older phones never saw it. Re-enable only
+ * after the bar is a sibling of the target rather than a descendant.
+ *
+ * The other degrade cases end at the same scrim: the target is not attached yet,
+ * or the blur is unsupported. In every case `colors.glass` alone still reads as
+ * a translucent pill.
  */
 function TabBarGlass() {
   const { scheme } = useTheme();
   const target = useBlurTarget();
   const styles = useStyles();
 
-  if (!target) return <View style={styles.glass} />;
+  if (Platform.OS === "android" || !target) {
+    return <View style={styles.glass} />;
+  }
 
   return (
     <BlurView

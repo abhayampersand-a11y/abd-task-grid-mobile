@@ -11,6 +11,16 @@ import { BlurTargetView } from "expo-blur";
  *
  * The whole routed app is the target: the tab bar floats over every screen, so
  * whatever is behind it at any moment is what it has to blur.
+ *
+ * That framing is wrong on Android and the tab bar no longer uses it there. The
+ * bar renders *inside* this provider, so pointing a `BlurView` at this target
+ * asks it to blur a subtree containing itself — a cycle that makes libhwui
+ * recurse until the RenderThread's stack overflows and the process dies. See the
+ * note on `TabBarGlass` in `app/(tabs)/_layout.tsx`. iOS is unaffected: the ref
+ * is ignored there and `BlurTargetView` is a plain `View`, so this stays a
+ * no-op wrapper rather than something to unpick.
+ *
+ * Any Android consumer added here must sit *outside* the `BlurTargetView` below.
  */
 const BlurTargetContext = createContext<React.RefObject<View | null> | null>(
   null,
