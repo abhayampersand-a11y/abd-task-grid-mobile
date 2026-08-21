@@ -42,36 +42,42 @@ only foreground and background are ever stacked on each other.
 
 ---
 
-## Before the next build: Firebase
+## The package name is `com.taskflowpro.app` — resolved, do not change it
 
-`android.package` changed from `com.taskflowpro.app` to `com.taskgrid.app`, and
-`google-services.json` is still issued against the old one. The Google Services
-Gradle plugin fails the build on that mismatch — *"No matching client found for
-package name com.taskgrid.app"* — so this is a hard blocker, not a warning.
+It was briefly renamed to `com.taskgrid.app` to match the new listing title.
+That rename broke every Android build, because `google-services.json` is issued
+against the old id and the Google Services Gradle plugin fails on the mismatch:
 
-1. Firebase console → project `taskflow-pro-974c5` → Add app → Android.
-2. Package name `com.taskgrid.app`. Nickname anything.
-3. Download the new `google-services.json` and replace `../google-services.json`.
+```
+Execution failed for task ':app:processReleaseGoogleServices'.
+> No matching client found for package name 'com.taskgrid.app'
+```
 
-The old `com.taskflowpro.app` client can stay in the file; the plugin only needs
-a matching one to exist.
+(EAS build `c5f22324`, 21 Aug 2026, `preview` — the two `preview` builds before
+the rename both finished.)
 
-**Push does not need re-credentialing.** Push already worked under the old
-package, and the only reason it stops is the file mismatch above. Step 1 adds
-the new Android app *inside the existing Firebase project*, and the FCM V1
-service account key held by EAS is scoped to the project, not to one Android
-app — so it stays valid and there is nothing to re-upload. Replace
-`google-services.json`, rebuild, and push works exactly as before.
+It was reverted rather than fixed in Firebase, and that is the end of it:
 
-Verify it on the rebuilt APK rather than assuming: a token only comes back from
-a development or release build, never from Expo Go, so a silent fallback to
-in-app alerts is easy to miss.
+- **The package name is invisible to users.** It shows in the Play URL and in
+  Android's app-info screen, nowhere else. The listing title stays *Taskgrid*;
+  `app.json`'s `name` is still `Taskgrid` and was never part of the problem.
+- **It is permanent after the first release.** Play will not let a published app
+  change its `applicationId` ever, so this had to be settled *before* upload —
+  which is exactly where it was caught.
+- **Everything already lines up with it**: `google-services.json`, the FCM
+  credentials EAS holds, the `taskflow-pro` slug, the `taskflow` scheme, and the
+  two legal pages, which name the package and must keep matching the listing.
 
-`com.taskgrid.customer` is already taken on Play by an unrelated home-services
-app, which is why the package here is `com.taskgrid.app`. Play only requires
-package names to be globally unique — listing *titles* may repeat — so the name
-itself is fine to use; the cost is store-search overlap with that app, which was
-a deliberate trade.
+`com.taskgrid.customer` is taken on Play by an unrelated home-services app, and
+`com.taskgrid.app` was the workaround for that. Neither matters now: Play only
+requires package ids to be globally unique, listing *titles* may repeat, and
+`Taskgrid` is still the title regardless of the id underneath.
+
+**Push needs no re-credentialing.** It worked under this package before, and the
+FCM V1 service account key EAS holds is scoped to the Firebase project, not to
+one Android app. Still verify it on the built APK rather than assuming: a token
+only comes back from a development or release build, never from Expo Go, so a
+silent fallback to in-app alerts is easy to miss.
 
 ## Left alone on purpose
 

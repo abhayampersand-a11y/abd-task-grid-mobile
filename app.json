@@ -10,10 +10,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.taskgrid.app"
+      "bundleIdentifier": "com.taskflowpro.app"
     },
     "android": {
-      "package": "com.taskgrid.app",
+      "package": "com.taskflowpro.app",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#6544f5",
