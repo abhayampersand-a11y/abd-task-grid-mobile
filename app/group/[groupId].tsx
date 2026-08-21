@@ -39,6 +39,7 @@ import { TaskList } from "@/components/app/TaskList";
 import { TaskFilterBar } from "@/components/app/TaskFilterBar";
 import { CreateTaskSheet } from "@/components/app/CreateTaskSheet";
 import { MemberInviteSearch } from "@/components/app/MemberInviteSearch";
+import { GroupIconPicker } from "@/components/app/GroupIconPicker";
 
 type Tab = "tasks" | "members";
 
@@ -194,9 +195,9 @@ export default function GroupDetail() {
       >
         <Card style={styles.summary}>
           <View style={styles.summaryHead}>
-            <View style={[styles.summaryBadge, { backgroundColor: tint.bg }]}>
-              <Ionicons name="people" size={21} color={tint.fg} />
-            </View>
+            {/* Tappable for the owner — the same gesture as the profile
+                picture, on the same kind of tile. */}
+            <GroupIconPicker group={detail} canEdit={isOwner} size={46} />
             <View style={styles.summaryText}>
               <Text style={styles.summaryTitle}>{detail.name}</Text>
               <Text style={styles.summaryMeta}>
@@ -461,13 +462,6 @@ export default function GroupDetail() {
 const useStyles = makeStyles(({ colors }) => ({
   summary: { gap: spacing.md },
   summaryHead: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  summaryBadge: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   summaryText: { flex: 1, gap: 2 },
   summaryTitle: { fontSize: 16, fontWeight: "700", color: colors.ink },
   summaryMeta: { fontSize: 12, color: colors.inkMuted },

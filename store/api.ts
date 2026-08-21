@@ -23,6 +23,7 @@ import type {
   ChangePasswordInput,
   CreateGroupInput,
   CreateTaskInput,
+  DeleteAccountInput,
   InvitationAction,
   PushTokenInput,
   SignInInput,
@@ -133,6 +134,13 @@ export interface AuthResponse {
   token: string;
 }
 
+/** What both group-icon endpoints echo back once the row is stored. */
+export interface GroupIconResult {
+  id: string;
+  name: string;
+  iconUrl: string | null;
+}
+
 /** Drops empty values so the querystring stays readable. */
 function clean(params: Record<string, unknown>) {
   return Object.fromEntries(
@@ -236,6 +244,40 @@ export const api = createApi({
     deleteGroup: build.mutation<{ success: boolean }, string>({
       query: (groupId) => ({ url: `/groups/${groupId}`, method: "DELETE" }),
       invalidatesTags: ["GroupList", "Dashboard", "TaskList"],
+    }),
+    /**
+     * The group's picture, uploaded exactly as an avatar is — FormData passes
+     * through `fetchBaseQuery` untouched, so the multipart boundary React
+     * Native generates survives and no Content-Type is set by hand.
+     *
+     * Invalidating the lists is what puts the new icon on screen: the URL
+     * carries a fresh object key, so `Image` refetches rather than showing the
+     * cached previous one.
+     */
+    uploadGroupIcon: build.mutation<
+      { group: GroupIconResult },
+      { groupId: string; body: FormData }
+    >({
+      query: ({ groupId, body }) => ({
+        url: `/groups/${groupId}/icon`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (_r, _e, { groupId }) => [
+        { type: "Group", id: groupId },
+        "GroupList",
+        "Dashboard",
+        "Invitation",
+      ],
+    }),
+    removeGroupIcon: build.mutation<{ group: GroupIconResult }, string>({
+      query: (groupId) => ({ url: `/groups/${groupId}/icon`, method: "DELETE" }),
+      invalidatesTags: (_r, _e, groupId) => [
+        { type: "Group", id: groupId },
+        "GroupList",
+        "Dashboard",
+        "Invitation",
+      ],
     }),
     inviteGroupMembers: build.mutation<
       { invited: number },
@@ -451,6 +493,14 @@ export const api = createApi({
       query: (body) => ({ url: "/profile/password", method: "POST", body }),
     }),
     /**
+     * Deletes the signed-in account outright. Nothing is invalidated: by the
+     * time this resolves there is no session left to refetch with, and the
+     * caller tears the local session down — which resets the whole cache.
+     */
+    deleteAccount: build.mutation<{ success: boolean }, DeleteAccountInput>({
+      query: (body) => ({ url: "/profile", method: "DELETE", body }),
+    }),
+    /**
      * `fetchBaseQuery` passes FormData through untouched — it only reaches for
      * JSON.stringify on plain objects — so the multipart boundary React Native
      * generates survives, and no Content-Type must be set by hand.
@@ -527,6 +577,8 @@ export const {
   useCreateGroupMutation,
   useUpdateGroupMutation,
   useDeleteGroupMutation,
+  useUploadGroupIconMutation,
+  useRemoveGroupIconMutation,
   useInviteGroupMembersMutation,
   useRemoveGroupMemberMutation,
   useDirectoryQuery,
@@ -552,6 +604,7 @@ export const {
   useSearchQuery,
   useUpdateProfileMutation,
   useChangePasswordMutation,
+  useDeleteAccountMutation,
   useUploadAvatarMutation,
   useRemoveAvatarMutation,
   useAdminUsersQuery,

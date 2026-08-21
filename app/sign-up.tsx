@@ -8,6 +8,7 @@ import { makeStyles, useTheme } from "@/lib/theme-context";
 import { signUpSchema } from "@/lib/validation";
 import { fieldErrorsFrom, mergeServerErrors, type FieldErrors } from "@/lib/form";
 import { useAuth } from "@/lib/auth";
+import { openLegal, PRIVACY_URL, TERMS_URL } from "@/lib/legal";
 import { toApiError, useSignUpMutation } from "@/store/api";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
@@ -134,21 +135,39 @@ export default function SignUp() {
           error={errors.confirmPassword}
         />
 
-        <Pressable
-          onPress={() => setAcceptTerms((value) => !value)}
-          hitSlop={HIT_SLOP}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: acceptTerms }}
-          style={styles.termsRow}
-        >
+        {/* The switch is the whole control now: the row used to be one big
+            Pressable, which cannot hold links — a tap meant for "Terms of
+            Service" would only have toggled the switch. Agreeing to documents
+            you have no way to open is also what Play objects to. */}
+        <View style={styles.termsRow}>
           <Switch
             value={acceptTerms}
             onValueChange={setAcceptTerms}
             trackColor={{ true: colors.brand200, false: colors.line }}
             thumbColor={acceptTerms ? colors.brandSolid : colors.surface}
+            hitSlop={HIT_SLOP}
+            accessibilityLabel="I accept the Terms of Service and Privacy Policy"
           />
-          <Text style={styles.termsText}>I accept the Terms of Service</Text>
-        </Pressable>
+          <Text style={styles.termsText}>
+            I accept the{" "}
+            <Text
+              style={styles.termsLink}
+              onPress={() => openLegal(TERMS_URL)}
+              accessibilityRole="link"
+            >
+              Terms of Service
+            </Text>{" "}
+            and{" "}
+            <Text
+              style={styles.termsLink}
+              onPress={() => openLegal(PRIVACY_URL)}
+              accessibilityRole="link"
+            >
+              Privacy Policy
+            </Text>
+            .
+          </Text>
+        </View>
         {errors.acceptTerms ? (
           <Text style={styles.error}>{errors.acceptTerms}</Text>
         ) : null}
@@ -207,7 +226,8 @@ const useStyles = makeStyles(({ colors }) => ({
   },
   subtitle: { fontSize: 15, color: colors.inkMuted, lineHeight: 22 },
   termsRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  termsText: { flex: 1, fontSize: 14, color: colors.inkSoft },
+  termsText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.inkSoft },
+  termsLink: { fontWeight: "600", color: colors.brand600 },
   error: { fontSize: 12, color: colors.rose700, marginTop: -spacing.sm },
   switchLink: { alignItems: "center", paddingVertical: spacing.md },
   switchText: { fontSize: 14, color: colors.inkMuted },

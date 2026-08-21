@@ -1,6 +1,6 @@
-# TaskFlow Pro — mobile
+# Taskgrid — mobile
 
-The Expo client for TaskFlow Pro. It is a **second front end, not a second
+The Expo client for Taskgrid. It is a **second front end, not a second
 product**: it talks to the same Next.js API in `../my-app`, so there is one
 database, one set of permission checks and one source of truth.
 

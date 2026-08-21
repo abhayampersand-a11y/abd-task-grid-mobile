@@ -18,6 +18,13 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Firebase service account keys. These grant admin access to the whole Firebase
+# project and belong in EAS credentials, never in the tree. `google-services.json`
+# is deliberately NOT here: it is client config, carries no secret, and ships
+# inside the APK anyway.
+*-adminsdk-*.json
+service-account*.json
+
 # Metro
 .metro-health-check*
 

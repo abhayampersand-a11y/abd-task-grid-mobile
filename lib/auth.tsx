@@ -20,6 +20,15 @@ interface AuthValue {
   isAdmin: boolean;
   signInWithToken: (token: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /**
+   * Tears the session down locally without telling the server anything.
+   *
+   * `signOut` is the wrong call after an account deletion: the row it would
+   * revoke a session and a push token against is already gone, so both
+   * requests can only 401, and the 2s race would just delay the redirect for
+   * nothing.
+   */
+  endSessionLocally: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -126,8 +135,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdmin: user?.role === "ADMIN",
       signInWithToken,
       signOut,
+      endSessionLocally: clearSession,
     };
-  }, [currentData, restored, hasToken, isLoading, signInWithToken, signOut]);
+  }, [
+    currentData,
+    restored,
+    hasToken,
+    isLoading,
+    signInWithToken,
+    signOut,
+    clearSession,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

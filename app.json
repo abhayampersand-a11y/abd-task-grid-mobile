@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "TaskFlow Pro",
+    "name": "Taskgrid",
     "slug": "taskflow-pro",
     "owner": "abhaydesai",
     "scheme": "taskflow",
@@ -10,13 +10,13 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.taskflowpro.app"
+      "bundleIdentifier": "com.taskgrid.app"
     },
     "android": {
-      "package": "com.taskflowpro.app",
+      "package": "com.taskgrid.app",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#6544f5",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -42,8 +42,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow TaskFlow Pro to access your photos so you can set a profile picture.",
-          "cameraPermission": "Allow TaskFlow Pro to use the camera to take a profile picture."
+          "photosPermission": "Allow Taskgrid to access your photos so you can set a profile picture.",
+          "cameraPermission": "Allow Taskgrid to use the camera to take a profile picture."
         }
       ]
     ],

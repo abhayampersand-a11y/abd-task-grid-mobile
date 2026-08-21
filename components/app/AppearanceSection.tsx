@@ -93,7 +93,7 @@ export function AppearanceSection() {
       <View style={styles.header}>
         <Text style={styles.title}>Appearance</Text>
         <Text style={styles.description}>
-          Choose how TaskFlow Pro looks on this device. The setting is saved to
+          Choose how Taskgrid looks on this device. The setting is saved to
           this device only.
         </Text>
       </View>

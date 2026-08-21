@@ -152,6 +152,18 @@ export const changePasswordSchema = z
     path: ["confirmPassword"],
   });
 
+/**
+ * Confirming an account deletion. Which field is actually required is decided
+ * by the API against the stored hash, not here: an account with a password
+ * confirms with it, and a social-only account — which has none — confirms by
+ * typing its own email address back. Being signed in is deliberately not
+ * enough on its own for something irreversible.
+ */
+export const deleteAccountSchema = z.object({
+  password: z.string().optional(),
+  confirmEmail: z.string().trim().max(255).optional(),
+});
+
 export const adminUserActionSchema = z.object({
   status: z.enum(["ACTIVE", "DISABLED"]),
 });
@@ -185,4 +197,5 @@ export type CreateTaskInput = z.input<typeof createTaskSchema>;
 export type UpdateTaskInput = z.input<typeof updateTaskSchema>;
 export type UpdateProfileInput = z.input<typeof updateProfileSchema>;
 export type ChangePasswordInput = z.input<typeof changePasswordSchema>;
+export type DeleteAccountInput = z.input<typeof deleteAccountSchema>;
 export type PushTokenInput = z.input<typeof pushTokenSchema>;

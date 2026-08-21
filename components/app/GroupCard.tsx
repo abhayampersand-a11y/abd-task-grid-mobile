@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { radius, spacing } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
 import type { GroupSummary } from "@/lib/types";
-import { Avatar, ProgressBar } from "@/components/ui/primitives";
+import { Avatar, GroupIcon, ProgressBar } from "@/components/ui/primitives";
 
 export function GroupCard({ group }: { group: GroupSummary }) {
   const router = useRouter();
@@ -24,9 +24,7 @@ export function GroupCard({ group }: { group: GroupSummary }) {
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
       <View style={styles.header}>
-        <View style={[styles.badge, { backgroundColor: tint.bg }]}>
-          <Ionicons name="people" size={19} color={tint.fg} />
-        </View>
+        <GroupIcon group={group} size={40} />
 
         <View style={styles.headerText}>
           <Text style={styles.name} numberOfLines={1}>
@@ -91,13 +89,6 @@ const useStyles = makeStyles(({ colors, shadow }) => ({
   },
   pressed: { backgroundColor: colors.surfaceMuted, transform: [{ scale: 0.995 }] },
   header: { flexDirection: "row", alignItems: "center", gap: spacing.md },
-  badge: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   headerText: { flex: 1, gap: 2 },
   name: { fontSize: 15, fontWeight: "700", color: colors.ink },
   meta: { fontSize: 12, fontWeight: "500", color: colors.inkMuted },

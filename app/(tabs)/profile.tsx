@@ -1,18 +1,21 @@
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
-import { confirmDestructive } from "@/lib/alert";
+import { confirmDestructive, notify } from "@/lib/alert";
 import { spacing } from "@/lib/theme";
 import { makeStyles } from "@/lib/theme-context";
 import { formatDate } from "@/lib/format";
 import { useAuth } from "@/lib/auth";
+import { openLegal, PRIVACY_URL, TERMS_URL } from "@/lib/legal";
 import { changePasswordSchema, updateProfileSchema } from "@/lib/validation";
 import { fieldErrorsFrom, mergeServerErrors, type FieldErrors } from "@/lib/form";
 import {
   toApiError,
   useChangePasswordMutation,
+  useDeleteAccountMutation,
   useUpdateProfileMutation,
 } from "@/store/api";
 import { Body, DetailBar, Screen } from "@/components/ui/Screen";
+import { Sheet } from "@/components/ui/Sheet";
 import { Card, ErrorNote } from "@/components/ui/primitives";
 import { ProfileSkeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
@@ -24,11 +27,13 @@ import { AvatarPicker } from "@/components/app/AvatarPicker";
 type Section = "details" | "security" | "appearance";
 
 export default function Profile() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, endSessionLocally } = useAuth();
   const styles = useStyles();
   const [updateProfile, { isLoading: savingProfile }] = useUpdateProfileMutation();
   const [changePassword, { isLoading: savingPassword }] =
     useChangePasswordMutation();
+  const [deleteAccount, { isLoading: deletingAccount }] =
+    useDeleteAccountMutation();
 
   const [section, setSection] = useState<Section>("details");
 
@@ -46,6 +51,12 @@ export default function Profile() {
   const [passwordErrors, setPasswordErrors] = useState<FieldErrors>({});
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  // Whichever of the two this account can be confirmed with: its password, or
+  // — for a social-only account, which has none — its email typed back.
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Seed the form once the session resolves, and again if it is refetched.
   useEffect(() => {
@@ -111,6 +122,29 @@ export default function Profile() {
       setPasswordErrors((current) => mergeServerErrors(current, api.fieldErrors));
       setPasswordError(api.message);
     }
+  }
+
+  async function deleteAccountNow() {
+    if (!user) return;
+    setDeleteError(null);
+
+    try {
+      await deleteAccount(
+        user.hasPassword
+          ? { password: deleteConfirmation }
+          : { confirmEmail: deleteConfirmation },
+      ).unwrap();
+    } catch (error) {
+      setDeleteError(toApiError(error).message);
+      return;
+    }
+
+    // Only past the await: a failed confirmation must leave the session alone
+    // so the sheet can show why and be tried again.
+    setDeleteOpen(false);
+    setDeleteConfirmation("");
+    await endSessionLocally();
+    notify("Account deleted", "Your account and its data have been removed.");
   }
 
   function confirmSignOut() {
@@ -228,6 +262,7 @@ export default function Profile() {
             />
           </Card>
         ) : (
+          <>
           <Card style={styles.form}>
             {passwordError ? <ErrorNote message={passwordError} /> : null}
             {passwordMessage ? (
@@ -276,6 +311,36 @@ export default function Profile() {
               fullWidth
             />
           </Card>
+
+          {/* Play requires an app that creates accounts to offer deletion from
+              inside the app, not only by writing to support. */}
+          <Card style={styles.danger}>
+            <Text style={styles.dangerTitle}>Danger zone</Text>
+            <Text style={styles.dangerBody}>
+              Deleting your account permanently removes your profile, your
+              comments and attachments, the groups you created and every task
+              inside them. This cannot be undone.
+            </Text>
+            {user.role === "ADMIN" ? (
+              <Text style={styles.dangerNote}>
+                Administrator accounts cannot be deleted here — another
+                administrator has to remove them.
+              </Text>
+            ) : (
+              <Button
+                label="Delete my account"
+                variant="danger"
+                icon="trash-outline"
+                onPress={() => {
+                  setDeleteConfirmation("");
+                  setDeleteError(null);
+                  setDeleteOpen(true);
+                }}
+                fullWidth
+              />
+            )}
+          </Card>
+          </>
         )}
 
         <Button
@@ -285,7 +350,85 @@ export default function Profile() {
           onPress={confirmSignOut}
           fullWidth
         />
+
+        {/* Both documents reachable from inside the app, not only from the
+            store listing — this is where a reviewer looks for them. */}
+        <View style={styles.legalRow}>
+          <Text
+            style={styles.legalLink}
+            onPress={() => openLegal(PRIVACY_URL)}
+            accessibilityRole="link"
+          >
+            Privacy Policy
+          </Text>
+          <Text style={styles.legalDot}>·</Text>
+          <Text
+            style={styles.legalLink}
+            onPress={() => openLegal(TERMS_URL)}
+            accessibilityRole="link"
+          >
+            Terms of Service
+          </Text>
+        </View>
       </Body>
+
+      {/* A sheet rather than `confirmDestructive`: the confirmation needs a
+          typed secret, and a native alert cannot take input on Android. */}
+      <Sheet
+        visible={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title="Delete your account?"
+        footer={
+          <Button
+            label="Delete permanently"
+            variant="danger"
+            onPress={deleteAccountNow}
+            loading={deletingAccount}
+            disabled={!deleteConfirmation.trim()}
+            fullWidth
+          />
+        }
+      >
+        <View style={styles.deleteBody}>
+          {deleteError ? <ErrorNote message={deleteError} /> : null}
+
+          <Text style={styles.dangerBody}>
+            This is permanent and takes effect immediately. It removes your
+            profile and sign-ins, your comments, attachments and notifications,
+            the groups you created and every task inside them.
+          </Text>
+          <Text style={styles.dangerNote}>
+            Tasks assigned to you in groups you do not own stay with that group
+            and become unassigned.
+          </Text>
+
+          {user.hasPassword ? (
+            <TextField
+              label="Confirm with your password"
+              value={deleteConfirmation}
+              onChangeText={(value) => {
+                setDeleteConfirmation(value);
+                setDeleteError(null);
+              }}
+              secure
+              autoComplete="current-password"
+            />
+          ) : (
+            <TextField
+              label="Type your email address to confirm"
+              value={deleteConfirmation}
+              onChangeText={(value) => {
+                setDeleteConfirmation(value);
+                setDeleteError(null);
+              }}
+              placeholder={user.email}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              hint="Your account has no password — social sign-in never set one."
+            />
+          )}
+        </View>
+      </Sheet>
     </Screen>
   );
 }
@@ -299,4 +442,21 @@ const useStyles = makeStyles(({ colors }) => ({
   form: { gap: spacing.lg },
   success: { fontSize: 13, fontWeight: "600", color: colors.emerald700 },
   passwordIntro: { fontSize: 13, lineHeight: 19, color: colors.inkMuted },
+  danger: {
+    gap: spacing.md,
+    borderColor: colors.rose100,
+    backgroundColor: colors.rose50,
+  },
+  dangerTitle: { fontSize: 15, fontWeight: "700", color: colors.rose700 },
+  dangerBody: { fontSize: 13, lineHeight: 19, color: colors.inkSoft },
+  dangerNote: { fontSize: 13, lineHeight: 19, color: colors.inkMuted },
+  deleteBody: { gap: spacing.lg },
+  legalRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  legalLink: { fontSize: 13, fontWeight: "600", color: colors.brand600 },
+  legalDot: { fontSize: 13, color: colors.inkFaint },
 }));

@@ -11,7 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { radius, spacing } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
 import { initials, type Meta } from "@/lib/format";
-import type { UserSummary } from "@/lib/types";
+import type { GroupSummary, UserSummary } from "@/lib/types";
 
 /** The surface every list item sits on: hairline border, restrained lift. */
 export function Card({
@@ -81,6 +81,34 @@ export function Avatar({
       >
         {initials(user.fullName)}
       </Text>
+    </View>
+  );
+}
+
+/**
+ * A group's picture, with the coloured people glyph as the fallback — the
+ * counterpart to `Avatar`, kept as a rounded tile rather than a circle so a
+ * group never reads as a person in a list of faces.
+ */
+export function GroupIcon({
+  group,
+  size = 40,
+}: {
+  group: Pick<GroupSummary, "name" | "colorKey" | "iconUrl">;
+  size?: number;
+}) {
+  const { groupColor } = useTheme();
+  const styles = useStyles();
+  const tint = groupColor(group.colorKey);
+  const box = { width: size, height: size, borderRadius: radius.md };
+
+  if (group.iconUrl) {
+    return <Image source={{ uri: group.iconUrl }} style={box} />;
+  }
+
+  return (
+    <View style={[styles.avatar, box, { backgroundColor: tint.bg }]}>
+      <Ionicons name="people" size={Math.round(size * 0.48)} color={tint.fg} />
     </View>
   );
 }

@@ -139,7 +139,7 @@ export default function Dashboard() {
     <Screen>
       <BrandBar
         subtitle={greeting()}
-        title={user?.fullName.split(" ")[0] ?? "TaskFlow"}
+        title={user?.fullName.split(" ")[0] ?? "Taskgrid"}
         right={
           <>
             <IconAction

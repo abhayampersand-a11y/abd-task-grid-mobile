@@ -85,6 +85,7 @@ export interface GroupInvitationDto {
     name: string;
     description: string | null;
     colorKey: string;
+    iconUrl: string | null;
     memberCount: number;
   };
   invitedBy: UserSummary;
@@ -105,6 +106,8 @@ export interface GroupSummary {
   description: string | null;
   visibility: GroupVisibility;
   colorKey: string;
+  /** Uploaded group picture; null falls back to the colour chip and initial. */
+  iconUrl: string | null;
   createdAt: string;
   memberCount: number;
   taskCount: number;

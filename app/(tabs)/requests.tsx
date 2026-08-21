@@ -13,7 +13,12 @@ import {
   useRespondToInvitationMutation,
 } from "@/store/api";
 import { Body, BrandBar, Screen } from "@/components/ui/Screen";
-import { Avatar, EmptyState, ErrorNote } from "@/components/ui/primitives";
+import {
+  Avatar,
+  EmptyState,
+  ErrorNote,
+  GroupIcon,
+} from "@/components/ui/primitives";
 import { RequestListSkeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { ProfileButton } from "@/components/app/ProfileButton";
@@ -79,11 +84,17 @@ export default function Requests() {
               return (
                 <View key={invitation.id} style={styles.card}>
                   <View style={styles.head}>
-                    <View style={[styles.badge, { backgroundColor: tint.bg }]}>
-                      <View
-                        style={[styles.dot, { backgroundColor: tint.dot }]}
-                      />
-                    </View>
+                    {invitation.group.iconUrl ? (
+                      <GroupIcon group={invitation.group} size={42} />
+                    ) : (
+                      // No picture yet: the colour dot keeps the row reading
+                      // as a group rather than as the first letter of a name.
+                      <View style={[styles.badge, { backgroundColor: tint.bg }]}>
+                        <View
+                          style={[styles.dot, { backgroundColor: tint.dot }]}
+                        />
+                      </View>
+                    )}
                     <View style={styles.headText}>
                       <Text style={styles.group} numberOfLines={1}>
                         {invitation.group.name}
