@@ -4,39 +4,39 @@ Everything Google Play asks for at upload time, plus the copy for the listing.
 The icon files the app itself ships live in `../assets/`; only the two Play
 Console uploads live here.
 
-The mark is a checklist page: a purple header band pierced by four binder rings,
-three checked rows in blue, orange and green, and a folded bottom-right corner.
+The mark is a task list: three cards stacked across a blue disc, each with a
+checkbox at its left — yellow and green ticked, red still open — and the bottom
+row trimmed to the disc on its left while the card overhangs it on the right.
 
-`source-icon.png` is the master — a finished 1254px raster. Every visible asset
-is a **crop of that file**, not a redraw of it, so what ships is the artwork
-itself: gradients, ring highlights, page curl and all.
-
-The source is a product shot — the tile floats on white with a drop shadow under
-it. Shipping that whole frame would leave the artwork sitting inside a second,
-smaller rounded square once iOS and Play apply their own corner mask. So every
-asset crops to the tile's own bounds, `x 146, y 104, 958×958`, measured off the
-pixels: the tile interior is the same white as the surround, so its edge is
-found by the faint border rather than by any colour step.
+**The master is vector**, at `../../my-app/public/brand/taskgrid-mark.svg` (the
+same artwork is served as the web favicon from `my-app/app/icon.svg` and inlined
+in `my-app/components/ui/taskgrid-icon.tsx`, so the web header, the browser tab
+and the store icon are one mark). Every raster here and in `../assets/` is a
+render of that SVG at the size it ships, not a resample of another PNG —
+`source-icon.png` is a 1024px export for convenience, not the source of truth.
 
 The mark ships in two forms:
 
-- **Full bleed, no corner radius** — iOS, web and Play, all of which apply their
-  own corner mask, and any radius of ours would fight theirs. The tile's faint
-  border lands exactly where that mask cuts.
-- **A rounded card on brand purple** — the Android adaptive icon and the splash.
-  A launcher crops to a circle or a squircle depending on the OEM, and a
-  full-bleed page would lose its header band and folded corner to that crop.
+- **Full bleed, no plate** — the web favicon and PWA icons, the Expo web
+  favicon and the splash, all on transparency. Nothing crops these, so the
+  artwork uses the whole canvas.
+- **Inset on white** — iOS, Play and the Android adaptive foreground, all of
+  which apply their own corner mask. iOS and Play take 88% of the canvas; the
+  adaptive foreground takes 66% and the web maskable copy 78%, which are the
+  safe zones those two crops promise. `android-icon-background.png` is plain
+  white to match, and `app.json`'s `adaptiveIcon.backgroundColor` with it.
 
-The one asset that is *not* a crop is the Android **monochrome** layer. A themed
-icon has its colour thrown away and its alpha tinted, so the raster flattens
-into one featureless slab there. That layer is redrawn as a silhouette from
-measurements taken off the source. It does not need to register with the other
-layers: a themed icon *replaces* the icon rather than compositing with it, and
-only foreground and background are ever stacked on each other.
+The one asset that is *not* a render of the mark is the Android **monochrome**
+layer. A themed icon has its colour thrown away and its alpha tinted, and this
+mark — a filled disc under filled cards — flattens into one featureless slab
+under that. It is drawn separately as three outlined checkbox rows, which
+survive being reduced to one colour. It does not need to register with the
+other layers: a themed icon *replaces* the icon rather than compositing with
+it, and only foreground and background are ever stacked on each other.
 
 | File | Where it goes | Spec |
 | --- | --- | --- |
-| `source-icon.png` | master artwork, not uploaded | 1254×1254 |
+| `source-icon.png` | 1024px export of the master SVG, not uploaded | 1024×1024 |
 | `play-icon-512.png` | Play Console → Store listing → App icon | 512×512, 32-bit PNG, ≤1 MB |
 | `play-feature-graphic-1024x500.png` | Play Console → Store listing → Feature graphic | 1024×500, no alpha |
 

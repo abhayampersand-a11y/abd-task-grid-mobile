@@ -1,5 +1,12 @@
-import { useState } from "react";
-import { Platform, Pressable, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Animated,
+  Platform,
+  Pressable,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { Tabs } from "expo-router";
 import { BlurView } from "expo-blur";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,6 +14,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DOCK_SIZE, radius, spacing, TAB_BAR } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
 import { useBlurTarget } from "@/lib/blur-target";
+import {
+  TAB_DISC_SPRING,
+  TAB_SWIPE_SPEC,
+  tabSwipeInterpolator,
+} from "@/lib/tab-motion";
 import { useAuth } from "@/lib/auth";
 import {
   CreateActionProvider,
@@ -70,6 +82,16 @@ function TabBarGlass() {
  * colour change alone is easy to miss, and the disc is what carries the shape
  * language of the bar it sits in. It inverts (`ink` on `canvas`) so it reads the
  * same way in both themes without needing a colour of its own.
+ *
+ * The disc grows into place rather than appearing, on the same beat as the
+ * scenes sliding underneath it — a bar that cuts while the content swipes is
+ * the one thing that would give the swipe away as an effect.
+ *
+ * Both states of the glyph are drawn, stacked and cross-faded, because the
+ * colour it inverts to is not something a native-driven animation can reach:
+ * `color` and `backgroundColor` are JS-driver only, `opacity` and `transform`
+ * are not. Two glyphs at fixed colours buys the same result off the JS thread,
+ * and seven of them is nothing to draw.
  */
 function TabIcon({
   name,
@@ -81,15 +103,58 @@ function TabIcon({
   const { colors } = useTheme();
   const styles = useStyles();
 
+  // Starts settled rather than at 0, so a cold mount — or the admin/member swap
+  // rebuilding the bar — shows the current tab already selected instead of
+  // popping it in.
+  const selected = useRef(new Animated.Value(focused ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.spring(selected, {
+      toValue: focused ? 1 : 0,
+      useNativeDriver: true,
+      ...TAB_DISC_SPRING,
+    }).start();
+  }, [focused, selected]);
+
+  // The spring overshoots past 1, which is what gives the disc its bounce — but
+  // an opacity above 1 is undefined, so everything except the scale is clamped.
+  const shown = selected.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+  const hidden = selected.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+  const scale = selected.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.5, 1],
+  });
+
   return (
-    <View style={[styles.icon, focused && { backgroundColor: colors.ink }]}>
-      <Ionicons
-        name={name}
-        size={22}
-        // Unselected glyphs sit on glass with moving content behind it, so they
-        // take the stronger of the two muted tones.
-        color={focused ? colors.canvas : colors.inkSoft}
+    <View style={styles.icon}>
+      <Animated.View
+        style={[
+          styles.disc,
+          {
+            backgroundColor: colors.ink,
+            opacity: shown,
+            transform: [{ scale }],
+          },
+        ]}
       />
+
+      {/* Unselected glyphs sit on glass with moving content behind it, so they
+          take the stronger of the two muted tones. */}
+      <Animated.View style={[styles.glyph, { opacity: hidden }]}>
+        <Ionicons name={name} size={22} color={colors.inkSoft} />
+      </Animated.View>
+
+      <Animated.View style={[styles.glyph, { opacity: shown }]}>
+        <Ionicons name={name} size={22} color={colors.canvas} />
+      </Animated.View>
     </View>
   );
 }
@@ -171,6 +236,14 @@ function TabsChrome() {
   const { colors } = useTheme();
   const styles = useStyles();
 
+  // A scene travels its own width, so the interpolator is rebuilt whenever that
+  // width changes — a rotation, or a foldable opening.
+  const { width } = useWindowDimensions();
+  const sceneStyleInterpolator = useMemo(
+    () => tabSwipeInterpolator(width),
+    [width],
+  );
+
   // Admins never see the alerts or requests tabs, so those badge queries are
   // theirs to skip.
   const { data } = useNotificationsQuery(undefined, {
@@ -189,6 +262,13 @@ function TabsChrome() {
       <Tabs
         screenOptions={{
           headerShown: false,
+          // `shift` is the nearest named animation, and it is what the two
+          // options under it replace outright. It is named anyway: it is what
+          // tells the navigator an animation is wanted at all, and it is the
+          // preset both fall back to if either is ever dropped.
+          animation: "shift",
+          transitionSpec: TAB_SWIPE_SPEC,
+          sceneStyleInterpolator,
           tabBarActiveTintColor: colors.ink,
           tabBarInactiveTintColor: colors.inkMuted,
           // The label is dropped: with the selected disc doing the work, seven
@@ -363,10 +443,17 @@ const useStyles = makeStyles(({ colors, shadow }) => ({
    * slot from there.
    */
   iconSlot: { width: DISC, height: TAB_BAR.height - ITEM_PADDING * 2 },
-  icon: {
-    width: DISC,
-    height: DISC,
-    borderRadius: radius.pill,
+  icon: { width: DISC, height: DISC },
+  /**
+   * The disc is a layer of its own rather than a background colour on the slot,
+   * because it has to scale from its own centre without taking the glyph with
+   * it — a glyph that grows out of nothing reads as a zoom rather than as a
+   * selection.
+   */
+  disc: { ...StyleSheet.absoluteFill, borderRadius: radius.pill },
+  /** Stacked on the disc and on each other, so the two colours cross-fade in place. */
+  glyph: {
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
   },

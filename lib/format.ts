@@ -265,3 +265,19 @@ export function toDateInputValue(value: string | null | undefined) {
   const offset = date.getTimezoneOffset() * 60000;
   return new Date(date.getTime() - offset).toISOString().slice(0, 10);
 }
+
+/**
+ * The dashboard tiles each count a bucket of statuses, not a single one, so a
+ * tile's filter has to ask the API for that same bucket — otherwise
+ * "In progress: 2" opens a list with one row in it. `GET /api/tasks` reads
+ * `status` as a comma-separated list.
+ */
+export const STATUS_GROUP_PARAM = {
+  PENDING: "BACKLOG,TODO",
+  ACTIVE: "IN_PROGRESS,IN_REVIEW",
+} as const;
+
+export const STATUS_GROUP_OPTIONS: { value: string; label: string }[] = [
+  { value: STATUS_GROUP_PARAM.PENDING, label: "Pending (Backlog + To Do)" },
+  { value: STATUS_GROUP_PARAM.ACTIVE, label: "In Progress (+ In Review)" },
+];

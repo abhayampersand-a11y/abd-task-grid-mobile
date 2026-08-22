@@ -3,7 +3,7 @@ import { Pressable, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { HIT_SLOP, MIN_TAP, radius, spacing } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
-import { PRIORITY_ORDER, STATUS_ORDER } from "@/lib/format";
+import { PRIORITY_ORDER, STATUS_GROUP_OPTIONS, STATUS_ORDER } from "@/lib/format";
 import type { GroupSummary, UserSummary } from "@/lib/types";
 import { useDirectoryQuery, type TaskFeedFilters } from "@/store/api";
 import { Sheet } from "@/components/ui/Sheet";
@@ -306,6 +306,7 @@ export function TaskFilterBar({
           onChange={(value) => set({ status: value })}
           options={[
             { value: "", label: "Any status" },
+            ...STATUS_GROUP_OPTIONS,
             ...STATUS_ORDER.map((key) => ({
               value: key as string,
               label: statusMeta[key].label,

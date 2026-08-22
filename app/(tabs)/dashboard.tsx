@@ -5,6 +5,7 @@ import { spacing } from "@/lib/theme";
 import { makeStyles, useTheme } from "@/lib/theme-context";
 import { useAuth } from "@/lib/auth";
 import { useCreateAction } from "@/lib/create-action";
+import { STATUS_GROUP_PARAM } from "@/lib/format";
 import {
   toApiError,
   useDashboardQuery,
@@ -181,8 +182,8 @@ export default function Dashboard() {
                     value={counts.pending}
                     icon="ellipse-outline"
                     tint={statusMeta.TODO}
-                    active={filters.status === "TODO"}
-                    onPress={() => toggleStatus("TODO")}
+                    active={filters.status === STATUS_GROUP_PARAM.PENDING}
+                    onPress={() => toggleStatus(STATUS_GROUP_PARAM.PENDING)}
                   />
                   <StatTile
                     compact
@@ -190,8 +191,8 @@ export default function Dashboard() {
                     value={counts.inProgress}
                     icon="play-circle-outline"
                     tint={statusMeta.IN_PROGRESS}
-                    active={filters.status === "IN_PROGRESS"}
-                    onPress={() => toggleStatus("IN_PROGRESS")}
+                    active={filters.status === STATUS_GROUP_PARAM.ACTIVE}
+                    onPress={() => toggleStatus(STATUS_GROUP_PARAM.ACTIVE)}
                   />
                   <StatTile
                     compact
