@@ -45,24 +45,6 @@ module.exports = ({ config }) => {
         {
           android: {
             buildArchs: profile === "preview" ? ["arm64-v8a"] : ALL_ABIS,
-            // react-native-google-mobile-ads pins play-services-ads 25.4.0 in
-            // its own package.json, and that artifact ships Kotlin metadata
-            // version 2.3.0. SDK 57 compiles with 2.1.0, which cannot read it:
-            //
-            //   e: play-services-ads-25.4.0-api.jar!/META-INF/....kotlin_module
-            //      Module was compiled with an incompatible version of Kotlin.
-            //      The binary version of its metadata is 2.3.0, expected 2.1.0.
-            //
-            // The pin is read from the library's package.json at configure
-            // time, so there is no Gradle property to point at an older ads
-            // SDK — raising the compiler is the only lever. Kotlin reads
-            // metadata from its own version and below, so 2.3.x also compiles
-            // every module that was fine under 2.1.
-            //
-            // Remove this once Expo's own Kotlin catches up, and re-check it
-            // whenever the ads library is upgraded: the number that matters is
-            // the metadata version in the failure above, not the library's.
-            kotlinVersion: "2.3.0",
             // R8 and resource shrinking are OFF on purpose. Turning them on
             // crashed the release build the moment `lib/push.tsx` asked for
             // notification permission: expo-notifications resolves its icon and
@@ -81,6 +63,29 @@ module.exports = ({ config }) => {
           },
         },
       ],
+      // The library version is pinned exactly, and the pin is load-bearing.
+      //
+      // react-native-google-mobile-ads hard-codes its play-services-ads version
+      // in its own package.json and reads it at configure time, so the ads SDK
+      // travels with the library and cannot be overridden from Gradle. Google
+      // compiles newer ads SDKs with newer Kotlin, and SDK 57 compiles with
+      // 2.1.0, which cannot read metadata from above itself:
+      //
+      //   lib 16.4+  -> play-services-ads 25.4.0 -> Kotlin metadata 2.3.0  ✗
+      //   lib 16.1+  -> play-services-ads 25.0.0 -> Kotlin metadata 2.2.0  ✗
+      //   lib 16.0.0 -> play-services-ads 24.6.0 -> Kotlin metadata 2.1.0  ✓
+      //
+      // Anything above 16.0.0 fails :react-native-google-mobile-ads:
+      // compileReleaseKotlin with "Module was compiled with an incompatible
+      // version of Kotlin". `expo-build-properties` has an android.kotlinVersion
+      // setting, but it does not move the compiler this library sees — that was
+      // tried and the build failed identically.
+      //
+      // Raise the pin only when Expo's own Kotlin passes the metadata version of
+      // the ads SDK you are moving to. To check one before upgrading, read the
+      // header of any .kotlin_module inside the AAR's classes.jar: it decodes as
+      // a count followed by the version, so 00000003 00000002 00000001 00000000
+      // is metadata 2.1.0.
       [
         "react-native-google-mobile-ads",
         {
