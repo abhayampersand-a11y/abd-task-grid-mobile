@@ -27,6 +27,7 @@ import { InfiniteFooter } from "@/components/ui/InfiniteFooter";
 import { Sheet } from "@/components/ui/Sheet";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ProfileButton } from "@/components/app/ProfileButton";
+import { AdSlot } from "@/components/app/AdSlot";
 
 type Tint = { label: string; bg: string; fg: string; dot: string };
 
@@ -252,6 +253,10 @@ export default function AdminUsers() {
             />
           </>
         )}
+
+        {/* Past the end of the directory, so it is never adjacent to a row
+            whose overflow menu suspends or deletes an account. */}
+        {isLoading ? null : <AdSlot />}
       </Body>
 
       <Sheet

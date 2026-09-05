@@ -56,7 +56,6 @@ export interface CurrentUser extends UserSummary {
    * False for social-only accounts. The password form uses this to decide
    * whether to ask for the current password or offer to set a first one.
    */
-  hasPassword: boolean;
 }
 
 export interface AdminUserRow extends UserSummary {

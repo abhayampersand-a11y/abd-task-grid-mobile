@@ -7,6 +7,7 @@ import { PRIORITY_ORDER, STATUS_ORDER } from "@/lib/format";
 import { createTaskSchema } from "@/lib/validation";
 import { fieldErrorsFrom, mergeServerErrors, type FieldErrors } from "@/lib/form";
 import type { TaskPriority, TaskStatus } from "@/lib/types";
+import { useAds } from "@/lib/ads";
 import {
   toApiError,
   useCreateTaskMutation,
@@ -30,6 +31,7 @@ interface Props {
 export function CreateTaskSheet({ visible, onClose, groupId }: Props) {
   const [createTask, { isLoading }] = useCreateTaskMutation();
   const { data: groupData } = useGroupsQuery();
+  const { showInterstitial } = useAds();
   const { colors, statusMeta, priorityMeta } = useTheme();
   const styles = useStyles();
 
@@ -122,6 +124,13 @@ export function CreateTaskSheet({ visible, onClose, groupId }: Props) {
       await createTask(parsed.data).unwrap();
       reset();
       onClose();
+      // The one full-screen ad in the app, and it goes here because this is the
+      // only place the user has genuinely finished something: the sheet is
+      // already closing and nothing is waiting on them. It is rate-limited to
+      // one every few minutes inside `useAds`, so a burst of task creation still
+      // only ever costs the user a single interruption — and it is a no-op
+      // entirely whenever no ad happens to be loaded.
+      showInterstitial();
     } catch (error) {
       const api = toApiError(error);
       setErrors((current) => mergeServerErrors(current, api.fieldErrors));

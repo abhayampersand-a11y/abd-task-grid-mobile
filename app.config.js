@@ -15,6 +15,22 @@
 
 const ALL_ABIS = ["armeabi-v7a", "arm64-v8a", "x86", "x86_64"];
 
+/**
+ * AdMob *app* IDs — the `~`-separated ones, one per platform, which the plugin
+ * writes into `AndroidManifest.xml` and `Info.plist`. They are a build-time
+ * value, which is why they live here rather than in `lib/ads.tsx` alongside the
+ * unit IDs.
+ *
+ * Google's public sample app IDs are the fallback so that a checkout with no
+ * `.env` still builds and runs. They serve test ads only. Set the two variables
+ * (in `.env` locally, as EAS environment variables for a real build) before
+ * shipping anything you expect to earn from — the Android app crashes on start
+ * if the manifest carries an app ID that AdMob does not recognise, so a wrong
+ * value is louder than a missing one.
+ */
+const SAMPLE_ANDROID_APP_ID = "ca-app-pub-3940256099942544~3347511713";
+const SAMPLE_IOS_APP_ID = "ca-app-pub-3940256099942544~1458002511";
+
 module.exports = ({ config }) => {
   // EAS sets this during a build. Locally it is undefined, and locally we are
   // always in the development case.
@@ -45,6 +61,25 @@ module.exports = ({ config }) => {
             enableShrinkResourcesInReleaseBuilds: false,
             enableBundleCompression: true,
           },
+        },
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          androidAppId:
+            process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID ??
+            SAMPLE_ANDROID_APP_ID,
+          iosAppId:
+            process.env.EXPO_PUBLIC_ADMOB_IOS_APP_ID ?? SAMPLE_IOS_APP_ID,
+          // App Tracking Transparency. iOS shows this string in the system
+          // prompt the UMP form raises; without it the prompt cannot be
+          // presented and every iOS user is treated as having refused.
+          userTrackingUsageDescription:
+            "Allow Taskgrid to use this identifier so the ads you see are more relevant to you.",
+          // Starts the SDK on a background thread, so the ad stack never sits
+          // in front of the first frame.
+          optimizeInitialization: true,
+          optimizeAdLoading: true,
         },
       ],
     ],

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/primitives";
 import { AdminOverviewSkeleton } from "@/components/ui/Skeleton";
 import { ProfileButton } from "@/components/app/ProfileButton";
+import { AdSlot } from "@/components/app/AdSlot";
 
 export default function AdminOverview() {
   const { user } = useAuth();
@@ -111,6 +112,9 @@ export default function AdminOverview() {
             </Card>
           </>
         )}
+
+        {/* Under the last figure, where the overview ends. */}
+        {isLoading ? null : <AdSlot />}
       </Body>
     </Screen>
   );

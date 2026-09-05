@@ -22,6 +22,7 @@ import {
 import { RequestListSkeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { ProfileButton } from "@/components/app/ProfileButton";
+import { AdSlot } from "@/components/app/AdSlot";
 
 export default function Requests() {
   const router = useRouter();
@@ -146,6 +147,10 @@ export default function Requests() {
             })}
           </View>
         )}
+
+        {/* Clear of the accept/decline pair — those two buttons are the whole
+            screen, and nothing should sit close enough to be pressed instead. */}
+        {isLoading ? null : <AdSlot />}
       </Body>
     </Screen>
   );

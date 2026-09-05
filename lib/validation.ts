@@ -13,42 +13,6 @@ export const mobileSchema = z
     { message: "Enter a valid mobile number (10–15 digits)." },
   );
 
-export const passwordSchema = z
-  .string()
-  .min(8, "Password must be at least 8 characters.")
-  .max(72, "Password must be at most 72 characters.")
-  .regex(/[a-zA-Z]/, "Password must contain a letter.")
-  .regex(/[0-9]/, "Password must contain a number.");
-
-export const signUpSchema = z
-  .object({
-    fullName: z
-      .string()
-      .trim()
-      .min(2, "Please enter your full name.")
-      .max(80, "Name is too long."),
-    email: z.email("Enter a valid email address.").trim().toLowerCase(),
-    mobile: mobileSchema,
-    password: passwordSchema,
-    confirmPassword: z.string(),
-    acceptTerms: z
-      .boolean()
-      .refine((v) => v, "You must accept the Terms of Service."),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match.",
-    path: ["confirmPassword"],
-  });
-
-export const signInSchema = z.object({
-  identifier: z
-    .string()
-    .trim()
-    .min(1, "Enter your email or mobile number."),
-  password: z.string().min(1, "Enter your password."),
-  remember: z.boolean().optional().default(false),
-});
-
 export const createGroupSchema = z.object({
   name: z
     .string()
@@ -139,28 +103,14 @@ export const updateProfileSchema = z.object({
   avatarUrl: z.string().trim().max(500).optional().nullable(),
 });
 
-export const changePasswordSchema = z
-  .object({
-    // A social-only account has no password to confirm, so the requirement is
-    // enforced by the API against the stored hash rather than by this schema.
-    currentPassword: z.string().optional(),
-    newPassword: passwordSchema,
-    confirmPassword: z.string(),
-  })
-  .refine((d) => d.newPassword === d.confirmPassword, {
-    message: "Passwords do not match.",
-    path: ["confirmPassword"],
-  });
-
 /**
- * Confirming an account deletion. Which field is actually required is decided
- * by the API against the stored hash, not here: an account with a password
- * confirms with it, and a social-only account — which has none — confirms by
- * typing its own email address back. Being signed in is deliberately not
- * enough on its own for something irreversible.
+ * Confirming an account deletion, by typing the account's own email back.
+ *
+ * Being signed in is deliberately not enough on its own for something
+ * irreversible, and with sign-in delegated to a provider there is no secret of
+ * ours left to re-enter.
  */
 export const deleteAccountSchema = z.object({
-  password: z.string().optional(),
   confirmEmail: z.string().trim().max(255).optional(),
 });
 
@@ -190,12 +140,9 @@ export type InvitationAction = z.infer<
   typeof invitationResponseSchema
 >["action"];
 
-export type SignUpInput = z.input<typeof signUpSchema>;
-export type SignInInput = z.input<typeof signInSchema>;
 export type CreateGroupInput = z.input<typeof createGroupSchema>;
 export type CreateTaskInput = z.input<typeof createTaskSchema>;
 export type UpdateTaskInput = z.input<typeof updateTaskSchema>;
 export type UpdateProfileInput = z.input<typeof updateProfileSchema>;
-export type ChangePasswordInput = z.input<typeof changePasswordSchema>;
 export type DeleteAccountInput = z.input<typeof deleteAccountSchema>;
 export type PushTokenInput = z.input<typeof pushTokenSchema>;

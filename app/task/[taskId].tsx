@@ -40,6 +40,7 @@ import {
   KeyboardAvoider,
   KeyboardAwareScrollView,
 } from "@/components/ui/KeyboardAvoider";
+import { AdSlot } from "@/components/app/AdSlot";
 
 export default function TaskDetail() {
   const { taskId } = useLocalSearchParams<{ taskId: string }>();
@@ -337,6 +338,13 @@ export default function TaskDetail() {
               </View>
             </Card>
           ) : null}
+
+          {/* On the seam between the record and the conversation about it —
+              the one break on this screen that is already a change of subject,
+              so a slab of somebody else's content interrupts nothing. It is
+              well clear of the status field at the top and of the composer
+              pinned at the bottom, the two controls this screen exists for. */}
+          <AdSlot />
 
           <Card style={styles.block}>
             <SectionHeading title={`Comments (${task.comments.length})`} />

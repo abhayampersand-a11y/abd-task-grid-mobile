@@ -27,6 +27,7 @@ import { InfiniteFooter } from "@/components/ui/InfiniteFooter";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { TaskList } from "@/components/app/TaskList";
 import { TaskFilterBar } from "@/components/app/TaskFilterBar";
+import { AdSlot } from "@/components/app/AdSlot";
 import { CreateTaskSheet } from "@/components/app/CreateTaskSheet";
 import { CreateGroupSheet } from "@/components/app/CreateGroupSheet";
 import { ProfileButton } from "@/components/app/ProfileButton";
@@ -293,6 +294,12 @@ export default function Dashboard() {
             )}
           </View>
         )}
+
+        {/* At the foot of the feed rather than above it: the tiles and the
+            filter row are what the screen opens on, and an ad between them and
+            the tasks they describe would break that reading. It is only ever
+            reached by scrolling, which is also when a banner is worth most. */}
+        {overview.isLoading ? null : <AdSlot />}
       </Body>
 
       {/* Creating from a group-filtered feed starts on that group. */}

@@ -19,6 +19,15 @@ interface AuthValue {
   ready: boolean;
   isAdmin: boolean;
   signInWithToken: (token: string) => Promise<void>;
+  /**
+   * Swaps the stored token for a fresh one, same user.
+   *
+   * Changing a password revokes every session issued before it, this device's
+   * included, so the server mints a replacement and hands it back. Unlike
+   * `signInWithToken` this leaves the cache alone: the account did not change,
+   * so nothing already fetched has gone stale.
+   */
+  replaceToken: (token: string) => Promise<void>;
   signOut: () => Promise<void>;
   /**
    * Tears the session down locally without telling the server anything.
@@ -70,6 +79,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     [dispatch],
   );
+
+  const replaceToken = useCallback(async (token: string) => {
+    await saveToken(token);
+    setHasToken(true);
+  }, []);
 
   /**
    * Ends the session on this device. Touches no network and never rejects —
@@ -134,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ready: restored && !(hasToken && isLoading),
       isAdmin: user?.role === "ADMIN",
       signInWithToken,
+      replaceToken,
       signOut,
       endSessionLocally: clearSession,
     };
@@ -143,6 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     hasToken,
     isLoading,
     signInWithToken,
+    replaceToken,
     signOut,
     clearSession,
   ]);

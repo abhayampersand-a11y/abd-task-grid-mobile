@@ -19,6 +19,7 @@ import { Body, BrandBar, Screen } from "@/components/ui/Screen";
 import { EmptyState, ErrorNote } from "@/components/ui/primitives";
 import { NotificationListSkeleton } from "@/components/ui/Skeleton";
 import { ProfileButton } from "@/components/app/ProfileButton";
+import { AdSlot } from "@/components/app/AdSlot";
 
 const ICONS: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
   TASK_ASSIGNED: "clipboard-outline",
@@ -152,6 +153,11 @@ export default function Notifications() {
             ))}
           </View>
         )}
+
+        {/* Below the alerts, never between them: a row here is one tap from a
+            task, and an ad in that column is exactly where a mis-tap costs the
+            user something. */}
+        {isLoading ? null : <AdSlot />}
       </Body>
     </Screen>
   );

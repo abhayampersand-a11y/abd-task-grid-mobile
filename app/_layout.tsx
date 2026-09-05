@@ -5,6 +5,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { store } from "@/store";
+import { AdsProvider } from "@/lib/ads";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { BlurTargetProvider } from "@/lib/blur-target";
 import { PushSync } from "@/lib/push";
@@ -93,7 +94,13 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider>
           <AuthProvider>
-            <ThemedApp />
+            {/* Above the router, and so above the auth gate inside it: consent
+                is asked for once per install, has nothing to do with who is
+                signed in, and its form has to be able to appear over the
+                sign-in screen. */}
+            <AdsProvider>
+              <ThemedApp />
+            </AdsProvider>
           </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>

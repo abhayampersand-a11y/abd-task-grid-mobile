@@ -20,14 +20,11 @@ import type {
   UserSummary,
 } from "@/lib/types";
 import type {
-  ChangePasswordInput,
   CreateGroupInput,
   CreateTaskInput,
   DeleteAccountInput,
   InvitationAction,
   PushTokenInput,
-  SignInInput,
-  SignUpInput,
   UpdateProfileInput,
   UpdateTaskInput,
 } from "@/lib/validation";
@@ -128,12 +125,6 @@ export interface AdminStats {
   growthRate: number;
 }
 
-/** Sign-in and sign-up hand native clients the raw token to persist. */
-export interface AuthResponse {
-  user: CurrentUser;
-  token: string;
-}
-
 /** What both group-icon endpoints echo back once the row is stored. */
 export interface GroupIconResult {
   id: string;
@@ -177,14 +168,6 @@ export const api = createApi({
     me: build.query<{ user: CurrentUser }, void>({
       query: () => "/auth/me",
       providesTags: ["Session"],
-    }),
-    signUp: build.mutation<AuthResponse, SignUpInput>({
-      query: (body) => ({ url: "/auth/sign-up", method: "POST", body }),
-      invalidatesTags: ["Session"],
-    }),
-    signIn: build.mutation<AuthResponse, SignInInput>({
-      query: (body) => ({ url: "/auth/sign-in", method: "POST", body }),
-      invalidatesTags: ["Session"],
     }),
     // No `invalidatesTags`: `auth.tsx` resets the whole cache immediately after
     // this resolves. Invalidating `Session` would only refetch `/auth/me` with
@@ -489,8 +472,23 @@ export const api = createApi({
       query: (body) => ({ url: "/profile", method: "PATCH", body }),
       invalidatesTags: ["Session"],
     }),
-    changePassword: build.mutation<{ success: boolean }, ChangePasswordInput>({
-      query: (body) => ({ url: "/profile/password", method: "POST", body }),
+    /**
+     * Revokes this account's sessions everywhere.
+     *
+     * `keepThisDevice` reissues the caller's own token — the bump invalidates
+     * it too, so without the replacement this handset would sign itself out
+     * along with the ones the user meant to remove.
+     */
+    signOutEverywhere: build.mutation<
+      { success: boolean; token: string | null },
+      { keepThisDevice?: boolean } | void
+    >({
+      query: (arg) => ({
+        url: `/auth/sign-out-everywhere${
+          arg && arg.keepThisDevice ? "?keepThisDevice" : ""
+        }`,
+        method: "POST",
+      }),
     }),
     /**
      * Deletes the signed-in account outright. Nothing is invalidated: by the
@@ -566,8 +564,6 @@ export const api = createApi({
 
 export const {
   useMeQuery,
-  useSignUpMutation,
-  useSignInMutation,
   useSignOutMutation,
   useOauthProvidersQuery,
   useDashboardQuery,
@@ -603,7 +599,7 @@ export const {
   useUnregisterPushTokenMutation,
   useSearchQuery,
   useUpdateProfileMutation,
-  useChangePasswordMutation,
+  useSignOutEverywhereMutation,
   useDeleteAccountMutation,
   useUploadAvatarMutation,
   useRemoveAvatarMutation,

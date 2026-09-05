@@ -40,6 +40,7 @@ import { TaskFilterBar } from "@/components/app/TaskFilterBar";
 import { CreateTaskSheet } from "@/components/app/CreateTaskSheet";
 import { MemberInviteSearch } from "@/components/app/MemberInviteSearch";
 import { GroupIconPicker } from "@/components/app/GroupIconPicker";
+import { AdSlot } from "@/components/app/AdSlot";
 
 type Tab = "tasks" | "members";
 
@@ -400,6 +401,11 @@ export default function GroupDetail() {
             </View>
           </View>
         )}
+
+        {/* Foot of whichever tab is open. The FAB floats over the bottom-right
+            of this screen, so the slot has the body's own gutter between it and
+            anything pressable. */}
+        <AdSlot />
       </Body>
 
       <Fab label="Assign a task" onPress={() => setTaskSheet(true)} />

@@ -25,17 +25,9 @@ interface Props {
   /** Called with the session token once a provider round trip succeeds. */
   onToken: (token: string) => void | Promise<void>;
   onError: (message: string) => void;
-  /** Suppresses taps while the email/password form is mid-flight. */
-  disabled?: boolean;
-  label?: string;
 }
 
-export function SocialAuthButtons({
-  onToken,
-  onError,
-  disabled = false,
-  label = "Or continue with",
-}: Props) {
+export function SocialAuthButtons({ onToken, onError }: Props) {
   const { colors } = useTheme();
   const styles = useStyles();
   const { data } = useOauthProvidersQuery();
@@ -45,7 +37,9 @@ export function SocialAuthButtons({
     ENABLED_PROVIDERS.includes(provider),
   );
   // Nothing to show until the server has confirmed at least one provider —
-  // rendering three buttons that 503 would be worse than a brief absence.
+  // rendering buttons that 503 would be worse than a brief absence. This is now
+  // the only control on the screen, so an empty render is a blank sign-in page;
+  // that is still better than offering a button that cannot work.
   if (providers.length === 0) return null;
 
   async function start(provider: OAuthProviderId) {
@@ -62,16 +56,12 @@ export function SocialAuthButtons({
 
   return (
     <View style={styles.root}>
-      <View style={styles.dividerRow}>
-        <View style={styles.rule} />
-        <Text style={styles.dividerLabel}>{label}</Text>
-        <View style={styles.rule} />
-      </View>
-
       {providers.map((provider) => {
         const mark = MARKS[provider];
         const busy = pending === provider;
-        const inactive = disabled || pending !== null;
+        // One round trip at a time: two provider sheets racing would leave
+        // whichever finished second overwriting the first one's session.
+        const inactive = pending !== null;
 
         return (
           <Pressable
@@ -105,14 +95,6 @@ export function SocialAuthButtons({
 
 const useStyles = makeStyles(({ colors }) => ({
   root: { gap: spacing.sm },
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    paddingVertical: spacing.xs,
-  },
-  rule: { flex: 1, height: 1, backgroundColor: colors.line },
-  dividerLabel: { fontSize: 12.5, color: colors.inkFaint },
   button: {
     minHeight: 50,
     flexDirection: "row",

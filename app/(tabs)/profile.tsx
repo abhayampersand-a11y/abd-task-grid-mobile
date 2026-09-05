@@ -6,11 +6,11 @@ import { makeStyles } from "@/lib/theme-context";
 import { formatDate } from "@/lib/format";
 import { useAuth } from "@/lib/auth";
 import { openLegal, PRIVACY_URL, TERMS_URL } from "@/lib/legal";
-import { changePasswordSchema, updateProfileSchema } from "@/lib/validation";
+import { updateProfileSchema } from "@/lib/validation";
 import { fieldErrorsFrom, mergeServerErrors, type FieldErrors } from "@/lib/form";
 import {
   toApiError,
-  useChangePasswordMutation,
+  useSignOutEverywhereMutation,
   useDeleteAccountMutation,
   useUpdateProfileMutation,
 } from "@/store/api";
@@ -27,11 +27,11 @@ import { AvatarPicker } from "@/components/app/AvatarPicker";
 type Section = "details" | "security" | "appearance";
 
 export default function Profile() {
-  const { user, signOut, endSessionLocally } = useAuth();
+  const { user, signOut, endSessionLocally, replaceToken } = useAuth();
   const styles = useStyles();
   const [updateProfile, { isLoading: savingProfile }] = useUpdateProfileMutation();
-  const [changePassword, { isLoading: savingPassword }] =
-    useChangePasswordMutation();
+  const [signOutEverywhere, { isLoading: signingOutAll }] =
+    useSignOutEverywhereMutation();
   const [deleteAccount, { isLoading: deletingAccount }] =
     useDeleteAccountMutation();
 
@@ -45,16 +45,12 @@ export default function Profile() {
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordErrors, setPasswordErrors] = useState<FieldErrors>({});
-  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [signOutAllMessage, setSignOutAllMessage] = useState<string | null>(
+    null,
+  );
 
   const [deleteOpen, setDeleteOpen] = useState(false);
-  // Whichever of the two this account can be confirmed with: its password, or
-  // — for a social-only account, which has none — its email typed back.
+  /** The account's own email address, typed back to confirm the deletion. */
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -95,32 +91,20 @@ export default function Profile() {
     }
   }
 
-  async function savePassword() {
-    setPasswordError(null);
-    setPasswordMessage(null);
-
-    const parsed = changePasswordSchema.safeParse({
-      currentPassword,
-      newPassword,
-      confirmPassword,
-    });
-
-    if (!parsed.success) {
-      setPasswordErrors(fieldErrorsFrom(parsed.error));
-      return;
-    }
-    setPasswordErrors({});
-
+  async function signOutEverywhereNow() {
+    setSignOutAllMessage(null);
     try {
-      await changePassword(parsed.data).unwrap();
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-      setPasswordMessage("Password changed.");
+      // This handset keeps its session — the point of the button is the ones
+      // the user is not holding. The server revokes everything and hands back a
+      // replacement for this device, which has to be stored before anything
+      // else fires a request with the token that just died.
+      const { token } = await signOutEverywhere({
+        keepThisDevice: true,
+      }).unwrap();
+      if (token) await replaceToken(token);
+      setSignOutAllMessage("Signed out on all other devices.");
     } catch (error) {
-      const api = toApiError(error);
-      setPasswordErrors((current) => mergeServerErrors(current, api.fieldErrors));
-      setPasswordError(api.message);
+      setSignOutAllMessage(toApiError(error).message);
     }
   }
 
@@ -129,11 +113,7 @@ export default function Profile() {
     setDeleteError(null);
 
     try {
-      await deleteAccount(
-        user.hasPassword
-          ? { password: deleteConfirmation }
-          : { confirmEmail: deleteConfirmation },
-      ).unwrap();
+      await deleteAccount({ confirmEmail: deleteConfirmation }).unwrap();
     } catch (error) {
       setDeleteError(toApiError(error).message);
       return;
@@ -264,50 +244,23 @@ export default function Profile() {
         ) : (
           <>
           <Card style={styles.form}>
-            {passwordError ? <ErrorNote message={passwordError} /> : null}
-            {passwordMessage ? (
-              <Text style={styles.success}>{passwordMessage}</Text>
+            <Text style={styles.sectionTitle}>How you sign in</Text>
+            <Text style={styles.passwordIntro}>
+              {user.email}
+            </Text>
+            <Text style={styles.passwordIntro}>
+              There is no password to manage — sign-in is handled by your
+              provider, so your password lives with them and never with us.
+            </Text>
+
+            {signOutAllMessage ? (
+              <Text style={styles.success}>{signOutAllMessage}</Text>
             ) : null}
-
-            {/* A social-only account has no password to confirm — it is
-                setting its first one. */}
-            {user?.hasPassword ? (
-              <TextField
-                label="Current password"
-                value={currentPassword}
-                onChangeText={setCurrentPassword}
-                secure
-                autoComplete="current-password"
-                error={passwordErrors.currentPassword}
-              />
-            ) : (
-              <Text style={styles.passwordIntro}>
-                You signed up with a social provider. Adding a password lets you
-                sign in with your email as well.
-              </Text>
-            )}
-            <TextField
-              label="New password"
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secure
-              autoComplete="new-password"
-              hint="At least 8 characters, with a letter and a number."
-              error={passwordErrors.newPassword}
-            />
-            <TextField
-              label="Confirm new password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secure
-              autoComplete="new-password"
-              error={passwordErrors.confirmPassword}
-            />
-
             <Button
-              label={user?.hasPassword ? "Change password" : "Set password"}
-              onPress={savePassword}
-              loading={savingPassword}
+              label="Sign out on all other devices"
+              variant="secondary"
+              onPress={signOutEverywhereNow}
+              loading={signingOutAll}
               fullWidth
             />
           </Card>
@@ -402,31 +355,18 @@ export default function Profile() {
             and become unassigned.
           </Text>
 
-          {user.hasPassword ? (
-            <TextField
-              label="Confirm with your password"
-              value={deleteConfirmation}
-              onChangeText={(value) => {
-                setDeleteConfirmation(value);
-                setDeleteError(null);
-              }}
-              secure
-              autoComplete="current-password"
-            />
-          ) : (
-            <TextField
-              label="Type your email address to confirm"
-              value={deleteConfirmation}
-              onChangeText={(value) => {
-                setDeleteConfirmation(value);
-                setDeleteError(null);
-              }}
-              placeholder={user.email}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              hint="Your account has no password — social sign-in never set one."
-            />
-          )}
+          <TextField
+            label="Type your email address to confirm"
+            value={deleteConfirmation}
+            onChangeText={(value) => {
+              setDeleteConfirmation(value);
+              setDeleteError(null);
+            }}
+            placeholder={user.email}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            hint="There is no password to confirm with — your provider holds it, not us."
+          />
         </View>
       </Sheet>
     </Screen>
@@ -440,6 +380,7 @@ const useStyles = makeStyles(({ colors }) => ({
   email: { fontSize: 13, color: colors.inkMuted },
   since: { fontSize: 12, color: colors.inkFaint },
   form: { gap: spacing.lg },
+  sectionTitle: { fontSize: 15, fontWeight: "700", color: colors.ink },
   success: { fontSize: 13, fontWeight: "600", color: colors.emerald700 },
   passwordIntro: { fontSize: 13, lineHeight: 19, color: colors.inkMuted },
   danger: {

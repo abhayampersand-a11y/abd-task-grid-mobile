@@ -57,13 +57,12 @@ That is the whole setup. Sign in with any account that works on the web.
 
 ## What changed in the web app
 
-Three additive edits, none of which alter existing behaviour:
+Two additive edits, neither of which alters existing behaviour:
 
 | File | Change |
 | --- | --- |
 | `my-app/lib/session.ts` | `readSession()` falls back to `Authorization: Bearer` when there is no cookie; `createSessionCookie()` now returns the token it signed |
-| `my-app/app/api/auth/sign-in/route.ts` | response body also carries `token` |
-| `my-app/app/api/auth/sign-up/route.ts` | response body also carries `token` |
+| `my-app/app/api/auth/oauth/[provider]/callback/route.ts` | the native leg signs a token and hands it back on the deep link instead of setting a cookie |
 
 The browser still authenticates by httpOnly cookie and ignores the extra field.
 React Native has no cookie jar, so the app stores that token in the device
@@ -78,7 +77,8 @@ guard is untouched.
 ```
 app/                     expo-router routes
   _layout.tsx            providers + the signed-in/signed-out gate
-  sign-in.tsx            sign-up.tsx
+  sign-in.tsx            Google sign-in — the only door; no form, no password
+  oauth-callback.tsx     where the provider deep-links back with the token
   (tabs)/                bottom tab bar — member and admin tabs
   group/[groupId].tsx    pushed on the root stack, so it covers the tabs
   task/[taskId].tsx
@@ -188,6 +188,39 @@ npx eas build --profile development --platform android
 The server needs the `PushToken` table, so run `npm run db:deploy` in
 `../my-app` after pulling this. `EXPO_ACCESS_TOKEN` is optional there — set it
 only once push security is enabled on the Expo project.
+
+## Ads (AdMob)
+
+Banners at the foot of every list, and one interstitial after a task is created.
+`react-native-google-mobile-ads` is the SDK; `lib/ads.tsx` is the only file that
+knows it exists.
+
+- `lib/ads.tsx` — `<AdsProvider />`, mounted once in `app/_layout.tsx` above the
+  auth gate. Gathers UMP consent, starts the SDK once consent allows it, and
+  keeps one interstitial warm. `useAds()` returns `ready` and
+  `showInterstitial()`; the latter is rate-limited to one ad every four minutes
+  and is a no-op when nothing is loaded.
+- `lib/ads.web.tsx` — the same exports, all inert. Metro picks it for the web
+  build, which has no native module to render.
+- `components/app/AdSlot.tsx` — one framed banner, labelled *Sponsored*. It
+  returns `null` for every failure case, so a screen places one unconditionally
+  and a no-fill leaves no hole.
+
+Where they are: the foot of Home, Groups, Alerts, Requests, a group's detail,
+and both admin screens; on a task, between the record and its comments. Not on
+sign-in or Profile — the latter is where an account is deleted, and nothing
+should sit near that button.
+
+**Configuration is optional and lives in the environment** — see `.env.example`
+for the six names. The two *app* ids are read by `app.config.js` at build time;
+the four *unit* ids by `lib/ads.tsx`. With none of them set, release builds show
+no ads and development builds show Google's test units. Development builds
+*always* use the test units regardless: requesting live ads from a debug build
+is invalid traffic and AdMob suspends accounts over it.
+
+**Requires a development or release build.** The module is native code, so in
+Expo Go and on web the guard in `lib/ads.tsx` finds nothing and the whole layer
+switches itself off — every slot collapses and the app behaves as it did before.
 
 ## Conventions
 

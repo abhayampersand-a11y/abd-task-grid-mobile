@@ -27,6 +27,13 @@ Notes specific to this project:
   silently killing the action behind it. Use `notify` / `confirmDestructive`
   from `lib/alert.ts`, which fall back to the browser's own dialogs. A bare
   `Alert.alert` typechecks everywhere, which is what makes this so quiet.
+- **Never import `react-native-google-mobile-ads` directly.** It resolves its
+  native module at import time, so a static import throws during module
+  evaluation in Expo Go — before any error boundary exists. `lib/ads.tsx` is the
+  one file allowed to touch it, behind a guarded lazy `require`, and it has a
+  `lib/ads.web.tsx` twin because the module is native-only. Everything else goes
+  through `useAds()` and `<AdSlot />`, both of which are inert wherever the SDK
+  is missing.
 - **Social sign-in is brokered by the API, not by this app.** `lib/oauth.ts`
   only opens `/api/auth/oauth/{provider}/start` in a `WebBrowser` auth session
   and reads the session token off the `taskflow://oauth-callback` deep link —

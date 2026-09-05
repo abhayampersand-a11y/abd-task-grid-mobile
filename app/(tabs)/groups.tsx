@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { GroupCard } from "@/components/app/GroupCard";
 import { CreateGroupSheet } from "@/components/app/CreateGroupSheet";
 import { ProfileButton } from "@/components/app/ProfileButton";
+import { AdSlot } from "@/components/app/AdSlot";
 
 export default function Groups() {
   const [sheet, setSheet] = useState(false);
@@ -104,6 +105,9 @@ export default function Groups() {
             ))}
           </View>
         )}
+
+        {/* Under the last group card, where the list runs out. */}
+        {isLoading ? null : <AdSlot />}
       </Body>
 
       <CreateGroupSheet visible={sheet} onClose={() => setSheet(false)} />
